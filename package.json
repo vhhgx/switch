@@ -1,0 +1,20 @@
+{
+  "name": "claude-proxy-switcher",
+  "version": "1.0.0",
+  "description": "Claude Code CLI 多账号/多中转站自动故障转移网关",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["claude", "proxy", "failover", "api-gateway", "anthropic"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.5",
+    "fs-extra": "^11.2.0",
+    "koa": "^2.15.0",
+    "koa-bodyparser": "^4.4.1",
+    "koa-static": "^5.0.0"
+  }
+}

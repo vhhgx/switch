@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Configuration (contains sensitive API keys)
+providers.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
