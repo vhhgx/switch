@@ -18,5 +18,6 @@ router.delete('/api/logs', logController.clear)
 
 // User routes
 router.post('/api/user/self', userController.getSelf)
+router.post('/api/user/checkin', userController.checkIn)
 
 export default router
