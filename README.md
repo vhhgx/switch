@@ -4,6 +4,9 @@
 
 一个基于 Koa2 的本地中间件工具，作为 Claude Code CLI 和 Anthropic API 之间的智能代理，实现多账号自动切换、故障转移和统一管理。
 
+
+XIHM8IRv202tHvnVLQbLwM/NpkXxQA==   软陶的
+
 ---
 
 ## ✨ 核心特性

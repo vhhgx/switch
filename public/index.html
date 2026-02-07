@@ -8,11 +8,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet" />
+      rel="stylesheet"
+    />
     <link
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
-      rel="stylesheet" />
-    <link rel="stylesheet" href="style.css" />
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
     <div class="container">
@@ -68,6 +70,28 @@
           </div>
         </div>
 
+        <!-- 用户信息卡片 -->
+        <div class="section">
+          <div class="section-header">
+            <h2>
+              <span class="material-symbols-outlined" style="font-size: 20px">
+                person
+              </span>
+              用户信息
+            </h2>
+            <button class="btn btn-primary btn-small" onclick="loadUserInfo()">
+              <span class="material-symbols-outlined" style="font-size: 14px">
+                refresh
+              </span>
+              获取用户信息
+            </button>
+          </div>
+
+          <div id="userInfoDisplay" style="padding: 20px; background: #f5f5f5; border-radius: 8px; margin-top: 12px;">
+            <p style="color: #666; margin: 0;">点击"获取用户信息"按钮加载数据</p>
+          </div>
+        </div>
+
         <!-- Provider Management -->
         <div class="section">
           <div class="section-header">
@@ -90,29 +114,35 @@
             <input
               id="name"
               placeholder="名称 (如: 反重力)"
-              autocomplete="off" />
+              autocomplete="off"
+            />
             <input
               id="baseurl"
               placeholder="Base URL (如: https://api.example.com)"
-              autocomplete="off" />
+              autocomplete="off"
+            />
             <div class="input-wrapper">
               <input
                 id="key"
                 type="password"
                 placeholder="API Key (sk-...)"
-                autocomplete="new-password" />
+                autocomplete="new-password"
+              />
               <button
                 type="button"
                 class="toggle-password"
-                onclick="togglePasswordVisibility('key', this)">
+                onclick="togglePasswordVisibility('key', this)"
+              >
                 <span
                   class="material-symbols-outlined eye-icon"
-                  style="font-size: 20px">
+                  style="font-size: 20px"
+                >
                   visibility
                 </span>
                 <span
                   class="material-symbols-outlined eye-off-icon"
-                  style="font-size: 20px; display: none">
+                  style="font-size: 20px; display: none"
+                >
                   visibility_off
                 </span>
               </button>
@@ -153,7 +183,8 @@
               </button>
               <button
                 class="btn btn-danger btn-small"
-                onclick="clearLogsFromLogsPanel()">
+                onclick="clearLogsFromLogsPanel()"
+              >
                 <span class="material-symbols-outlined" style="font-size: 14px">
                   delete
                 </span>
@@ -209,7 +240,8 @@
               id="editName"
               type="text"
               placeholder="如: 反重力"
-              required />
+              required
+            />
           </div>
           <div class="form-group">
             <label for="editUrl">Base URL</label>
@@ -218,7 +250,8 @@
               type="text"
               placeholder="如: https://api.example.com"
               autocomplete="off"
-              required />
+              required
+            />
           </div>
           <div class="form-group">
             <label for="editKey">API Key</label>
@@ -228,19 +261,23 @@
                 type="password"
                 placeholder="sk-..."
                 autocomplete="new-password"
-                required />
+                required
+              />
               <button
                 type="button"
                 class="toggle-password"
-                onclick="togglePasswordVisibility('editKey', this)">
+                onclick="togglePasswordVisibility('editKey', this)"
+              >
                 <span
                   class="material-symbols-outlined eye-icon"
-                  style="font-size: 20px">
+                  style="font-size: 20px"
+                >
                   visibility
                 </span>
                 <span
                   class="material-symbols-outlined eye-off-icon"
-                  style="font-size: 20px; display: none">
+                  style="font-size: 20px; display: none"
+                >
                   visibility_off
                 </span>
               </button>
@@ -250,7 +287,8 @@
             <button
               type="button"
               class="btn btn-secondary"
-              onclick="closeEditModal()">
+              onclick="closeEditModal()"
+            >
               取消
             </button>
             <button type="submit" class="btn btn-primary">保存</button>
@@ -260,33 +298,44 @@
     </div>
 
     <script>
+      // 日志自动刷新定时器
+      let logsRefreshInterval = null
+
       // Tab switching functionality
       function switchTab(tabName) {
         // Remove active class from all tabs and panels
         document
-          .querySelectorAll('.tab')
-          .forEach((tab) => tab.classList.remove('active'))
+          .querySelectorAll(".tab")
+          .forEach((tab) => tab.classList.remove("active"));
         document
-          .querySelectorAll('.tab-panel')
-          .forEach((panel) => panel.classList.remove('active'))
+          .querySelectorAll(".tab-panel")
+          .forEach((panel) => panel.classList.remove("active"));
 
         // Add active class to selected tab and panel
-        event.target.closest('.tab').classList.add('active')
-        document.getElementById(tabName + '-panel').classList.add('active')
+        event.target.closest(".tab").classList.add("active");
+        document.getElementById(tabName + "-panel").classList.add("active");
+
+        // 清除之前的定时器
+        if (logsRefreshInterval) {
+          clearInterval(logsRefreshInterval)
+          logsRefreshInterval = null
+        }
 
         // Load logs when switching to logs tab
-        if (tabName === 'logs') {
-          loadLogs()
+        if (tabName === "logs") {
+          loadLogs();
+          // 启动日志自动刷新（每5秒）
+          logsRefreshInterval = setInterval(loadLogs, 5000)
         }
       }
 
       // Load logs for logs panel
       async function loadLogs() {
         try {
-          const res = await fetch('/api/logs')
-          const logs = await res.json()
+          const res = await fetch("/api/logs");
+          const logs = await res.json();
 
-          const tbody = document.getElementById('logBody')
+          const tbody = document.getElementById("logBody");
 
           if (logs.length === 0) {
             tbody.innerHTML = `
@@ -298,21 +347,21 @@
                   <div>暂无请求日志</div>
                 </td>
               </tr>
-            `
-            return
+            `;
+            return;
           }
 
           tbody.innerHTML = logs
             .map((log) => {
-              const statusClass = `status-${log.status}`
-              const time = new Date(log.timestamp).toLocaleTimeString('zh-CN', {
+              const statusClass = `status-${log.status}`;
+              const time = new Date(log.timestamp).toLocaleTimeString("zh-CN", {
                 hour12: false,
-              })
-              const model = log.model || 'N/A'
+              });
+              const model = log.model || "N/A";
               const modelShort = model
-                .replace('claude-sonnet-4-5-20250929', 'sonnet-4.5')
-                .replace('claude-', '')
-              const provider = log.provider || 'N/A'
+                .replace("claude-sonnet-4-5-20250929", "sonnet-4.5")
+                .replace("claude-", "");
+              const provider = log.provider || "N/A";
 
               return `
               <tr>
@@ -328,23 +377,23 @@
                 <td class="duration">${log.duration}ms</td>
                 <td class="time">${time}</td>
               </tr>
-            `
+            `;
             })
-            .join('')
+            .join("");
         } catch (err) {
-          console.error('加载日志失败:', err)
+          console.error("加载日志失败:", err);
         }
       }
 
       // Clear logs from logs panel
       async function clearLogsFromLogsPanel() {
-        if (!confirm('确定要清空所有日志吗？')) return
+        if (!confirm("确定要清空所有日志吗？")) return;
         try {
-          await fetch('/api/logs', { method: 'DELETE' })
-          loadLogs()
-          loadStats()
+          await fetch("/api/logs", { method: "DELETE" });
+          loadLogs();
+          loadStats();
         } catch (err) {
-          console.error('清空日志失败:', err)
+          console.error("清空日志失败:", err);
         }
       }
 
@@ -352,27 +401,28 @@
       async function loadStats() {
         try {
           const [logsRes, providersRes] = await Promise.all([
-            fetch('/api/logs'),
-            fetch('/api/providers'),
-          ])
-          const logs = await logsRes.json()
-          const providers = await providersRes.json()
+            fetch("/api/logs"),
+            fetch("/api/providers"),
+          ]);
+          const logs = await logsRes.json();
+          const providers = await providersRes.json();
 
           // Online providers count
-          const onlineCount = providers.filter((p) => p.enabled).length
-          document.getElementById('onlineCount').textContent =
-            `${onlineCount} / ${providers.length}`
+          const onlineCount = providers.filter((p) => p.enabled).length;
+          document.getElementById("onlineCount").textContent =
+            `${onlineCount} / ${providers.length}`;
 
           // Total requests
-          document.getElementById('totalRequests').textContent = logs.length
+          document.getElementById("totalRequests").textContent = logs.length;
 
           // Success rate
-          const successCount = logs.filter((l) => l.success).length
+          const successCount = logs.filter((l) => l.success).length;
           const successRate =
             logs.length > 0
               ? ((successCount / logs.length) * 100).toFixed(1)
-              : 0
-          document.getElementById('successRate').textContent = `${successRate}%`
+              : 0;
+          document.getElementById("successRate").textContent =
+            `${successRate}%`;
 
           // Average duration
           const avgDuration =
@@ -380,20 +430,20 @@
               ? Math.round(
                   logs.reduce((sum, l) => sum + l.duration, 0) / logs.length,
                 )
-              : 0
-          document.getElementById('avgDuration').textContent =
-            `${avgDuration}ms`
+              : 0;
+          document.getElementById("avgDuration").textContent =
+            `${avgDuration}ms`;
         } catch (err) {
-          console.error('加载统计失败:', err)
+          console.error("加载统计失败:", err);
         }
       }
 
       // Load providers list
       async function loadProviders() {
         try {
-          const res = await fetch('/api/providers')
-          const providers = await res.json()
-          const container = document.getElementById('providerList')
+          const res = await fetch("/api/providers");
+          const providers = await res.json();
+          const container = document.getElementById("providerList");
 
           if (providers.length === 0) {
             container.innerHTML = `
@@ -403,21 +453,21 @@
               </svg>
               <div>暂无中转站配置，请添加</div>
             </div>
-          `
-            return
+          `;
+            return;
           }
 
           container.innerHTML = providers
             .map(
               (p) => `
-          <div class="provider-card ${p.enabled ? 'enabled' : 'disabled'}">
+          <div class="provider-card ${p.enabled ? "enabled" : "disabled"}">
             <div class="provider-info">
               <div class="name">
-                <span class="status-badge ${p.enabled ? 'online' : 'offline'}">
+                <span class="status-badge ${p.enabled ? "online" : "offline"}">
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
                     <circle cx="4" cy="4" r="4" />
                   </svg>
-                  ${p.enabled ? '在线' : '离线'}
+                  ${p.enabled ? "在线" : "离线"}
                 </span>
                 ${p.name}
               </div>
@@ -429,10 +479,10 @@
                 <span class="material-symbols-outlined" style="font-size: 14px">edit</span>
                 编辑
               </button>
-              <button class="btn ${p.enabled ? 'btn-secondary' : 'btn-success'} btn-small"
+              <button class="btn ${p.enabled ? "btn-secondary" : "btn-success"} btn-small"
                       onclick="toggleProvider(${p.id})">
-                <span class="material-symbols-outlined" style="font-size: 14px">${p.enabled ? 'pause' : 'play_arrow'}</span>
-                ${p.enabled ? '暂停' : '启用'}
+                <span class="material-symbols-outlined" style="font-size: 14px">${p.enabled ? "pause" : "play_arrow"}</span>
+                ${p.enabled ? "暂停" : "启用"}
               </button>
               <button class="btn btn-danger btn-small"
                       onclick="deleteProvider(${p.id})">
@@ -443,146 +493,193 @@
           </div>
         `,
             )
-            .join('')
+            .join("");
         } catch (err) {
-          console.error('加载中转站失败:', err)
+          console.error("加载中转站失败:", err);
         }
       }
 
       // Add provider
       async function addProvider() {
-        const name = document.getElementById('name').value.trim()
-        const baseUrl = document.getElementById('baseurl').value.trim()
-        const apiKey = document.getElementById('key').value.trim()
+        const name = document.getElementById("name").value.trim();
+        const baseUrl = document.getElementById("baseurl").value.trim();
+        const apiKey = document.getElementById("key").value.trim();
 
         if (!name || !baseUrl || !apiKey) {
-          alert('请填写完整信息')
-          return
+          alert("请填写完整信息");
+          return;
         }
 
         try {
-          await fetch('/api/providers', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+          await fetch("/api/providers", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name, baseUrl, apiKey }),
-          })
+          });
 
           // Clear form
-          document.getElementById('name').value = ''
-          document.getElementById('baseurl').value = ''
-          document.getElementById('key').value = ''
+          document.getElementById("name").value = "";
+          document.getElementById("baseurl").value = "";
+          document.getElementById("key").value = "";
 
           // Refresh
-          loadProviders()
-          loadStats()
+          loadProviders();
+          loadStats();
         } catch (err) {
-          alert('添加失败: ' + err.message)
+          alert("添加失败: " + err.message);
         }
       }
 
       // Toggle provider status
       async function toggleProvider(id) {
-        await fetch(`/api/providers/${id}/toggle`, { method: 'PATCH' })
-        loadProviders()
-        loadStats()
+        await fetch(`/api/providers/${id}/toggle`, { method: "PATCH" });
+        loadProviders();
+        loadStats();
       }
 
       // Delete provider
       async function deleteProvider(id) {
-        if (!confirm('确定要删除此中转站吗？')) return
-        await fetch(`/api/providers/${id}`, { method: 'DELETE' })
-        loadProviders()
-        loadStats()
+        if (!confirm("确定要删除此中转站吗？")) return;
+        await fetch(`/api/providers/${id}`, { method: "DELETE" });
+        loadProviders();
+        loadStats();
       }
 
       // Refresh stats
       function refreshStats() {
-        loadStats()
-        loadProviders()
+        loadStats();
+        loadProviders();
       }
 
       // Clear logs
       async function clearLogs() {
-        if (!confirm('确定要清空所有日志吗？')) return
-        await fetch('/api/logs', { method: 'DELETE' })
-        loadStats()
-        alert('日志已清空')
+        if (!confirm("确定要清空所有日志吗？")) return;
+        await fetch("/api/logs", { method: "DELETE" });
+        loadStats();
+        alert("日志已清空");
       }
 
       // Edit provider - Modal functions
-      let currentEditId = null
+      let currentEditId = null;
 
       function togglePasswordVisibility(inputId, button) {
-        const input = document.getElementById(inputId)
-        const eyeIcon = button.querySelector('.eye-icon')
-        const eyeOffIcon = button.querySelector('.eye-off-icon')
+        const input = document.getElementById(inputId);
+        const eyeIcon = button.querySelector(".eye-icon");
+        const eyeOffIcon = button.querySelector(".eye-off-icon");
 
-        if (input.type === 'password') {
-          input.type = 'text'
-          eyeIcon.style.display = 'none'
-          eyeOffIcon.style.display = 'block'
+        if (input.type === "password") {
+          input.type = "text";
+          eyeIcon.style.display = "none";
+          eyeOffIcon.style.display = "block";
         } else {
-          input.type = 'password'
-          eyeIcon.style.display = 'block'
-          eyeOffIcon.style.display = 'none'
+          input.type = "password";
+          eyeIcon.style.display = "block";
+          eyeOffIcon.style.display = "none";
         }
       }
 
       function openEditModal(id, name, baseUrl, apiKey) {
-        currentEditId = id
-        document.getElementById('editName').value = name
-        document.getElementById('editUrl').value = baseUrl
-        document.getElementById('editKey').value = apiKey
-        document.getElementById('editModal').classList.add('active')
+        currentEditId = id;
+        document.getElementById("editName").value = name;
+        document.getElementById("editUrl").value = baseUrl;
+        document.getElementById("editKey").value = apiKey;
+        document.getElementById("editModal").classList.add("active");
       }
 
       function closeEditModal() {
-        document.getElementById('editModal').classList.remove('active')
-        currentEditId = null
+        document.getElementById("editModal").classList.remove("active");
+        currentEditId = null;
       }
 
       async function saveEdit(event) {
-        event.preventDefault()
+        event.preventDefault();
 
-        const name = document.getElementById('editName').value.trim()
-        const baseUrl = document.getElementById('editUrl').value.trim()
-        const apiKey = document.getElementById('editKey').value.trim()
+        const name = document.getElementById("editName").value.trim();
+        const baseUrl = document.getElementById("editUrl").value.trim();
+        const apiKey = document.getElementById("editKey").value.trim();
 
         if (!name || !baseUrl || !apiKey) {
-          alert('请填写完整信息')
-          return
+          alert("请填写完整信息");
+          return;
         }
 
         try {
           await fetch(`/api/providers/${currentEditId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name, baseUrl, apiKey }),
-          })
+          });
 
-          closeEditModal()
-          loadProviders()
-          loadStats()
+          closeEditModal();
+          loadProviders();
+          loadStats();
         } catch (err) {
-          alert('更新失败: ' + err.message)
+          alert("更新失败: " + err.message);
         }
       }
 
       // Close modal when clicking outside
       document
-        .getElementById('editModal')
-        .addEventListener('click', function (e) {
+        .getElementById("editModal")
+        .addEventListener("click", function (e) {
           if (e.target === this) {
-            closeEditModal()
+            closeEditModal();
           }
-        })
+        });
 
-      // Initialize
+      // 获取用户信息
+      async function loadUserInfo() {
+        const display = document.getElementById('userInfoDisplay')
+
+        // 显示加载状态
+        display.innerHTML = `
+          <div style="text-align: center; padding: 20px;">
+            <div style="color: #666;">⏳ 正在获取用户信息...</div>
+          </div>
+        `
+
+        try {
+          const response = await fetch('/api/user/self', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          })
+
+          const data = await response.json()
+
+          if (response.ok) {
+            // 成功 - 显示格式化的 JSON 数据
+            display.innerHTML = `
+              <div style="background: white; padding: 16px; border-radius: 8px;">
+                <h3 style="margin-top: 0; color: #4CAF50;">✅ 获取成功</h3>
+                <pre style="background: #f5f5f5; padding: 12px; border-radius: 4px; overflow: auto; max-height: 400px; font-size: 13px; line-height: 1.5;">${JSON.stringify(data, null, 2)}</pre>
+              </div>
+            `
+          } else {
+            // 失败 - 显示错误信息
+            display.innerHTML = `
+              <div style="background: #ffebee; padding: 16px; border-radius: 8px;">
+                <h3 style="margin-top: 0; color: #f44336;">❌ 获取失败</h3>
+                <p><strong>状态码:</strong> ${response.status}</p>
+                <p><strong>错误信息:</strong> ${data.error?.message || JSON.stringify(data)}</p>
+              </div>
+            `
+          }
+        } catch (error) {
+          // 网络错误
+          display.innerHTML = `
+            <div style="background: #ffebee; padding: 16px; border-radius: 8px;">
+              <h3 style="margin-top: 0; color: #f44336;">❌ 请求异常</h3>
+              <p>${error.message}</p>
+            </div>
+          `
+        }
+      }
+
+      // Initialize - 仅在页面加载时获取一次数据
       loadProviders()
       loadStats()
-
-      // Auto refresh every 5 seconds
-      setInterval(loadStats, 5000)
     </script>
   </body>
 </html>

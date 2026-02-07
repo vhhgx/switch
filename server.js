@@ -45,7 +45,10 @@ app.use(async (ctx, next) => {
   }
 
   // PATCH: 切换启用/禁用
-  if (ctx.path.match(/\/api\/providers\/\d+\/toggle/) && ctx.method === 'PATCH') {
+  if (
+    ctx.path.match(/\/api\/providers\/\d+\/toggle/) &&
+    ctx.method === 'PATCH'
+  ) {
     const id = parseInt(ctx.path.split('/')[3])
     const providers = getProviders()
     const item = providers.find((p) => p.id === id)
@@ -118,13 +121,13 @@ function buildTargetUrl(baseUrl, requestPath) {
   return `${cleanBase}${cleanPath}`
 }
 
+// --- 静态文件服务 (必须在 API 路由之后) ---
+app.use(serve(path.join(__dirname, 'public')))
+
 // --- 核心转发逻辑 ---
 app.use(async (ctx) => {
-  // 静态资源服务
+  // 只处理 API 请求
   if (!ctx.path.startsWith('/v1/')) {
-    if (ctx.path === '/' || ctx.path.endsWith('.html')) {
-      return await serve(path.join(__dirname, 'public'))(ctx, () => {})
-    }
     return
   }
 
@@ -189,12 +192,17 @@ app.use(async (ctx) => {
 
       if (isErrorStatus) {
         const errorMsg =
-          response.status === 401 ? 'API Key 无效' :
-          response.status === 402 ? '余额不足' :
-          response.status === 404 ? 'URL 路径错误' :
-          '请求过于频繁'
+          response.status === 401
+            ? 'API Key 无效'
+            : response.status === 402
+              ? '余额不足'
+              : response.status === 404
+                ? 'URL 路径错误'
+                : '请求过于频繁'
 
-        console.warn(`⚠️ [${provider.name}] 返回 ${response.status} (${errorMsg})`)
+        console.warn(
+          `⚠️ [${provider.name}] 返回 ${response.status} (${errorMsg})`,
+        )
 
         // 如果还有其他可用中转站，切换到下一个
         if (providers.length > 1) {
@@ -216,7 +224,7 @@ app.use(async (ctx) => {
               error: {
                 type: 'authentication_error',
                 message: `代理错误: ${errorMsg}`,
-              }
+              },
             }
           }
 
@@ -273,10 +281,12 @@ app.use(async (ctx) => {
 
       // 尝试从响应头提取 token 信息
       if (response.headers['anthropic-ratelimit-tokens-input']) {
-        logEntry.tokenInput = parseInt(response.headers['anthropic-ratelimit-tokens-input']) || 0
+        logEntry.tokenInput =
+          parseInt(response.headers['anthropic-ratelimit-tokens-input']) || 0
       }
       if (response.headers['anthropic-ratelimit-tokens-output']) {
-        logEntry.tokenOutput = parseInt(response.headers['anthropic-ratelimit-tokens-output']) || 0
+        logEntry.tokenOutput =
+          parseInt(response.headers['anthropic-ratelimit-tokens-output']) || 0
       }
 
       // 提取模型信息（从请求体）
@@ -313,13 +323,10 @@ app.use(async (ctx) => {
 })
 
 // 启动服务器
-app.listen(3000, () => {
+app.listen(5678, () => {
   console.log(`
-    ✅ 修复版代理已启动 (端口 3000)
+    代理已启动
     --------------------------------
-    请检查下方日志中的 Target URL 是否正常:
-    例如应为: https://api.xxx.com/v1/messages
-    而不是:   .../v1/v1/messages
     --------------------------------
     `)
 })
