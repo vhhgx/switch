@@ -3,6 +3,7 @@ node_modules/
 
 # Configuration (contains sensitive API keys)
 providers.json
+# settings.json
 
 # Logs
 *.log

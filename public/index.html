@@ -41,6 +41,10 @@
             <span class="material-symbols-outlined tab-icon">bar_chart</span>
             请求日志
           </button>
+          <button class="tab" onclick="switchTab('settings')">
+            <span class="material-symbols-outlined tab-icon">settings</span>
+            设置
+          </button>
         </div>
       </div>
 
@@ -91,12 +95,12 @@
               </button>
               <button
                 class="btn btn-danger btn-small"
-                onclick="loadProviders()"
+                onclick="refreshAllBalances()"
               >
                 <span class="material-symbols-outlined" style="font-size: 14px">
                   refresh
                 </span>
-                刷新
+                刷新余额
               </button>
             </div>
           </div>
@@ -106,6 +110,486 @@
             <div class="empty-state">
               <span class="material-symbols-outlined icon">search</span>
               <div>暂无中转站配置，请添加</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Tab Panel -->
+      <div id="settings-panel" class="tab-panel">
+        <div class="section">
+          <div class="section-header">
+            <h2>
+              <span class="material-symbols-outlined" style="font-size: 20px">
+                tune
+              </span>
+              系统设置
+            </h2>
+          </div>
+
+          <div class="settings-container">
+            <!-- General Settings Section -->
+            <div class="settings-section">
+              <div class="settings-section-title">
+                <span class="material-symbols-outlined">display_settings</span>
+                <h3>常规设置</h3>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="autoRefresh">自动刷新日志</label>
+                  <p class="setting-desc">启用后，日志页面将每5秒自动刷新</p>
+                </div>
+                <label class="toggle-switch">
+                  <input
+                    type="checkbox"
+                    id="autoRefresh"
+                    checked
+                    onchange="toggleAutoRefresh(this.checked)"
+                  />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="refreshInterval">刷新间隔</label>
+                  <p class="setting-desc">设置日志自动刷新的时间间隔</p>
+                </div>
+                <select
+                  id="refreshInterval"
+                  class="setting-select"
+                  onchange="updateRefreshInterval(this.value)"
+                >
+                  <option value="3">3秒</option>
+                  <option value="5" selected>5秒</option>
+                  <option value="10">10秒</option>
+                  <option value="30">30秒</option>
+                </select>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="maxLogs">日志保留数量</label>
+                  <p class="setting-desc">设置系统最多保留的日志条数</p>
+                </div>
+                <select id="maxLogs" class="setting-select">
+                  <option value="50">50条</option>
+                  <option value="100" selected>100条</option>
+                  <option value="200">200条</option>
+                  <option value="500">500条</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Provider Settings Section -->
+            <div class="settings-section">
+              <div class="settings-section-title">
+                <span class="material-symbols-outlined">cloud_sync</span>
+                <h3>中转站设置</h3>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="retryAttempts">重试次数</label>
+                  <p class="setting-desc">请求失败时的最大重试次数</p>
+                </div>
+                <select id="retryAttempts" class="setting-select">
+                  <option value="1">1次</option>
+                  <option value="2">2次</option>
+                  <option value="3" selected>3次</option>
+                  <option value="5">5次</option>
+                </select>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="requestTimeout">请求超时</label>
+                  <p class="setting-desc">单个请求的最大等待时间</p>
+                </div>
+                <select id="requestTimeout" class="setting-select">
+                  <option value="30">30秒</option>
+                  <option value="60" selected>60秒</option>
+                  <option value="120">120秒</option>
+                  <option value="300">300秒</option>
+                </select>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="autoDisable">自动禁用失败节点</label>
+                  <p class="setting-desc">连续失败3次后自动禁用该中转站</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="autoDisable" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label>配额模式</label>
+                  <p class="setting-desc">配置不同币种的配额计算方式</p>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center">
+                  <button
+                    class="btn btn-primary btn-small"
+                    onclick="openQuotaModal()"
+                  >
+                    <span
+                      class="material-symbols-outlined"
+                      style="font-size: 14px"
+                      >add</span
+                    >
+                    添加配额
+                  </button>
+                  <button
+                    class="btn btn-secondary btn-small expand-toggle"
+                    onclick="toggleQuotaList()"
+                    id="quotaToggleBtn"
+                  >
+                    <span
+                      class="material-symbols-outlined"
+                      style="font-size: 14px"
+                      id="quotaToggleIcon"
+                      >expand_more</span
+                    >
+                  </button>
+                </div>
+              </div>
+
+              <!-- Quota List (Collapsible) -->
+              <div
+                id="quotaListContainer"
+                class="quota-list-container"
+                style="display: none"
+              >
+                <div id="quotaList" class="quota-list">
+                  <div class="empty-quota-state">
+                    <span
+                      class="material-symbols-outlined"
+                      style="font-size: 32px; opacity: 0.3"
+                      >payments</span
+                    >
+                    <p>暂无配额配置</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Notification Settings Section -->
+            <div class="settings-section">
+              <div class="settings-section-title">
+                <span class="material-symbols-outlined">notifications</span>
+                <h3>通知设置</h3>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="notifyOnError">错误通知</label>
+                  <p class="setting-desc">当请求失败时显示通知</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notifyOnError" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="notifyOnProviderDown">节点离线通知</label>
+                  <p class="setting-desc">当中转站离线时显示通知</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notifyOnProviderDown" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="soundEnabled">声音提示</label>
+                  <p class="setting-desc">启用通知声音</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="soundEnabled" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- API Configuration Section -->
+            <div class="settings-section">
+              <div class="settings-section-title">
+                <span class="material-symbols-outlined">key</span>
+                <h3>API配置</h3>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="apiBaseUrl">Base URL</label>
+                  <p class="setting-desc">API服务地址</p>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    gap: 8px;
+                    align-items: center;
+                    min-width: 600px;
+                  "
+                >
+                  <input
+                    type="text"
+                    id="apiBaseUrl"
+                    class="setting-input"
+                    value="http://localhost:5678"
+                    placeholder="如: http://localhost:5678"
+                    style="flex: 1"
+                  />
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label for="apiKey">API Key</label>
+                  <p class="setting-desc">API访问密钥</p>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    gap: 8px;
+                    align-items: center;
+                    min-width: 600px;
+                  "
+                >
+                  <input
+                    type="text"
+                    id="apiKey"
+                    class="setting-input"
+                    placeholder="sk-..."
+                    readonly
+                    style="
+                      flex: 1;
+                      font-family: &quot;JetBrains Mono&quot;, monospace;
+                      font-size: 12px;
+                    "
+                  />
+                  <button
+                    class="btn btn-primary btn-small"
+                    onclick="generateApiKey()"
+                  >
+                    <span
+                      class="material-symbols-outlined"
+                      style="font-size: 14px"
+                      >refresh</span
+                    >
+                    生成
+                  </button>
+                  <button
+                    class="btn btn-secondary btn-small"
+                    onclick="copyApiKey()"
+                    id="copyKeyBtn"
+                  >
+                    <span
+                      class="material-symbols-outlined"
+                      style="font-size: 14px"
+                      >content_copy</span
+                    >
+                    复制
+                  </button>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label>写入系统环境变量</label>
+                  <p class="setting-desc">
+                    将Base URL和API Key写入系统级别环境变量
+                  </p>
+                </div>
+                <button
+                  class="btn btn-success btn-small"
+                  onclick="writeApiConfigToSystem()"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 14px"
+                    >upload</span
+                  >
+                  写入系统变量
+                </button>
+              </div>
+            </div>
+
+            <!-- Environment Variables Section -->
+            <div class="settings-section">
+              <div class="settings-section-title">
+                <span class="material-symbols-outlined">code</span>
+                <h3>环境变量</h3>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label>应用环境变量</label>
+                  <p class="setting-desc">
+                    配置应用运行时的环境变量，点击"写入系统"按钮后生效
+                  </p>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center">
+                  <button
+                    class="btn btn-primary btn-small"
+                    onclick="openEnvModal()"
+                  >
+                    <span
+                      class="material-symbols-outlined"
+                      style="font-size: 14px"
+                      >add</span
+                    >
+                    添加变量
+                  </button>
+                  <button
+                    class="btn btn-success btn-small"
+                    onclick="writeEnvToSystem()"
+                  >
+                    <span
+                      class="material-symbols-outlined"
+                      style="font-size: 14px"
+                      >upload</span
+                    >
+                    写入系统
+                  </button>
+                  <button
+                    class="btn btn-secondary btn-small expand-toggle"
+                    onclick="toggleEnvList()"
+                    id="envToggleBtn"
+                  >
+                    <span
+                      class="material-symbols-outlined"
+                      style="font-size: 14px"
+                      id="envToggleIcon"
+                      >expand_more</span
+                    >
+                  </button>
+                </div>
+              </div>
+
+              <!-- Environment Variables List (Collapsible) -->
+              <div
+                id="envListContainer"
+                class="quota-list-container"
+                style="display: none"
+              >
+                <div id="envList" class="quota-list">
+                  <div class="empty-quota-state">
+                    <span
+                      class="material-symbols-outlined"
+                      style="font-size: 32px; opacity: 0.3"
+                      >settings_applications</span
+                    >
+                    <p>暂无环境变量配置</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- System Info Section -->
+            <div class="settings-section">
+              <div class="settings-section-title">
+                <span class="material-symbols-outlined">info</span>
+                <h3>系统信息</h3>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label>版本</label>
+                </div>
+                <span class="setting-value">v1.0.0</span>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label>运行时间</label>
+                </div>
+                <span class="setting-value" id="uptime">计算中...</span>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label>API端点</label>
+                </div>
+                <span class="setting-value">/v1/messages</span>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label>数据存储</label>
+                </div>
+                <span class="setting-value">本地 JSON</span>
+              </div>
+            </div>
+
+            <!-- Danger Zone Section -->
+            <div class="settings-section danger-section">
+              <div class="settings-section-title">
+                <span class="material-symbols-outlined">warning</span>
+                <h3>危险区域</h3>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label>清空所有日志</label>
+                  <p class="setting-desc">
+                    删除所有请求日志记录，此操作无法撤销
+                  </p>
+                </div>
+                <button
+                  class="btn btn-danger btn-small"
+                  onclick="clearAllLogs()"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 14px"
+                    >delete_sweep</span
+                  >
+                  清空日志
+                </button>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label>重置所有设置</label>
+                  <p class="setting-desc">将所有设置恢复为默认值</p>
+                </div>
+                <button
+                  class="btn btn-danger btn-small"
+                  onclick="resetAllSettings()"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 14px"
+                    >restart_alt</span
+                  >
+                  重置设置
+                </button>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label>删除所有中转站</label>
+                  <p class="setting-desc">删除所有中转站配置，此操作无法撤销</p>
+                </div>
+                <button
+                  class="btn btn-danger btn-small"
+                  onclick="clearAllProviders()"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 14px"
+                    >delete_forever</span
+                  >
+                  删除全部
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -166,6 +650,117 @@
             </table>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Quota Modal -->
+    <div class="modal-overlay" id="quotaModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>添加配额模式</h3>
+          <button class="modal-close" onclick="closeQuotaModal()">
+            <span class="material-symbols-outlined" style="font-size: 24px">
+              close
+            </span>
+          </button>
+        </div>
+        <form class="modal-form" onsubmit="addQuotaMode(event)">
+          <div class="form-group">
+            <label for="quotaName">名称</label>
+            <input
+              id="quotaName"
+              type="text"
+              placeholder="如: 美元配额"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="quotaCurrency">币种</label>
+            <select id="quotaCurrency" required>
+              <option value="">请选择币种</option>
+              <option value="USD">美元 (USD)</option>
+              <option value="CNY" selected>人民币 (CNY)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="quotaRatio">配额比例</label>
+            <input
+              id="quotaRatio"
+              type="number"
+              step="100000"
+              placeholder="如: 500000"
+              value="500000"
+              required
+            />
+            <div style="font-size: 12px; color: var(--text-muted)">
+              API返回值需要除以此比例才能得到实际金额
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="quotaExchangeRate">汇率</label>
+            <input
+              id="quotaExchangeRate"
+              type="number"
+              step="1"
+              placeholder="1"
+              value="1"
+              required
+            />
+            <div style="font-size: 12px; color: var(--text-muted)">
+              相对于人民币的汇率（1 表示与人民币等值）
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeQuotaModal()"
+            >
+              取消
+            </button>
+            <button type="submit" class="btn btn-primary">添加</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Environment Variable Modal -->
+    <div class="modal-overlay" id="envModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>添加环境变量</h3>
+          <button class="modal-close" onclick="closeEnvModal()">
+            <span class="material-symbols-outlined" style="font-size: 24px">
+              close
+            </span>
+          </button>
+        </div>
+        <form class="modal-form" onsubmit="saveEnvVariable(event)">
+          <div class="form-group">
+            <label for="envKey">变量名</label>
+            <input id="envKey" type="text" placeholder="如: PORT" required />
+            <div style="font-size: 12px; color: var(--text-muted)">
+              通常使用大写字母和下划线，如 API_KEY
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="envValue">变量值</label>
+            <input id="envValue" type="text" placeholder="如: 3000" required />
+            <div style="font-size: 12px; color: var(--text-muted)">
+              支持字符串、数字等任意值
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeEnvModal()"
+            >
+              取消
+            </button>
+            <button type="submit" class="btn btn-primary">保存</button>
+          </div>
+        </form>
       </div>
     </div>
 
@@ -269,14 +864,12 @@
             </div>
           </div>
           <div class="form-group">
-            <label for="addQuotaMethod">额度计算方式</label>
+            <label for="addQuotaMethod">配额模式</label>
             <select id="addQuotaMethod" class="quota-method">
-              <option value="total">总额度</option>
-              <option value="used">已使用</option>
-              <option value="remaining">剩余额度</option>
+              <option value="">请选择配额模式</option>
             </select>
             <div style="font-size: 12px; color: var(--text-muted)">
-              额度计算方式请在设置页面设置
+              配额模式请在设置页面设置
             </div>
           </div>
           <div class="modal-actions">
@@ -398,14 +991,12 @@
             </div>
           </div>
           <div class="form-group">
-            <label for="editQuotaMethod">额度计算方式</label>
+            <label for="editQuotaMethod">配额模式</label>
             <select id="editQuotaMethod" class="quota-method">
-              <option value="total">总额度</option>
-              <option value="used">已使用</option>
-              <option value="remaining">剩余额度</option>
+              <option value="">请选择配额模式</option>
             </select>
             <div style="font-size: 12px; color: var(--text-muted)">
-              额度计算方式请在设置页面设置
+              配额模式请在设置页面设置
             </div>
           </div>
           <div class="modal-actions">
@@ -425,6 +1016,9 @@
     <script>
       // 日志自动刷新定时器
       let logsRefreshInterval = null;
+      // 设置页面配置
+      let currentRefreshInterval = 5000; // 默认5秒
+      let autoRefreshEnabled = true;
 
       // Tab switching functionality
       function switchTab(tabName) {
@@ -449,8 +1043,15 @@
         // Load logs when switching to logs tab
         if (tabName === "logs") {
           loadLogs();
-          // 启动日志自动刷新（每5秒）
-          logsRefreshInterval = setInterval(loadLogs, 5000);
+          // 启动日志自动刷新（根据设置）
+          if (autoRefreshEnabled) {
+            logsRefreshInterval = setInterval(loadLogs, currentRefreshInterval);
+          }
+        }
+
+        // Load settings when switching to settings tab
+        if (tabName === "settings") {
+          loadSettings();
         }
       }
 
@@ -488,6 +1089,11 @@
                 .replace("claude-", "");
               const provider = log.provider || "N/A";
 
+              // <td class="token-info">
+              //     <span class="token-input">I: ${log.tokenInput || 0}</span><br>
+              //     <span class="token-output">O: ${log.tokenOutput || 0}</span>
+              //   </td>
+
               return `
               <tr>
                 <td><span class="status-badge ${statusClass}">${log.status}</span></td>
@@ -495,10 +1101,6 @@
                 <td><span class="model-text">${modelShort}</span></td>
                 <td><span class="provider-badge">${provider}</span></td>
                 <td><span class="path-text">${log.path}</span></td>
-                <td class="token-info">
-                  <span class="token-input">I: ${log.tokenInput || 0}</span><br>
-                  <span class="token-output">O: ${log.tokenOutput || 0}</span>
-                </td>
                 <td class="duration">${log.duration}ms</td>
                 <td class="time">${time}</td>
               </tr>
@@ -569,6 +1171,39 @@
           const res = await fetch("/api/providers");
           const providers = await res.json();
           const container = document.getElementById("providerList");
+
+          // 获取不支持签到的中转站列表
+          const noCheckinProviders = JSON.parse(
+            localStorage.getItem("noCheckinProviders") || "[]",
+          );
+
+          // 获取已签到的中转站列表（过滤掉过期的）
+          const checkedInData = JSON.parse(
+            localStorage.getItem("checkedInProviders") || "[]",
+          );
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const todayTimestamp = today.getTime();
+
+          // 过滤出今天签到的记录
+          const checkedInProviders = checkedInData
+            .filter((item) => {
+              const checkedInDate = new Date(item.checkedInAt);
+              checkedInDate.setHours(0, 0, 0, 0);
+              return checkedInDate.getTime() === todayTimestamp;
+            })
+            .map((item) => item.id);
+
+          // 清理过期的签到记录
+          const validCheckedIn = checkedInData.filter((item) => {
+            const checkedInDate = new Date(item.checkedInAt);
+            checkedInDate.setHours(0, 0, 0, 0);
+            return checkedInDate.getTime() === todayTimestamp;
+          });
+          localStorage.setItem(
+            "checkedInProviders",
+            JSON.stringify(validCheckedIn),
+          );
 
           if (providers.length === 0) {
             container.innerHTML = `
@@ -654,10 +1289,28 @@
                 p.token
                   ? `
               <div class="action-row">
+                ${
+                  noCheckinProviders.includes(p.id)
+                    ? `
+                <button class="btn btn-secondary btn-small" disabled style="opacity: 0.5; cursor: not-allowed;">
+                  <span class="material-symbols-outlined" style="font-size: 14px">block</span>
+                  不支持签到
+                </button>
+                `
+                    : checkedInProviders.includes(p.id)
+                      ? `
+                <button class="btn btn-secondary btn-small" disabled style="opacity: 0.7; cursor: not-allowed;">
+                  <span class="material-symbols-outlined" style="font-size: 14px">check_circle</span>
+                  已签到
+                </button>
+                `
+                      : `
                 <button class="btn btn-success btn-small" onclick="checkIn(${p.id})">
                   <span class="material-symbols-outlined" style="font-size: 14px">event_available</span>
                   签到
                 </button>
+                `
+                }
                 <button class="btn btn-secondary btn-small" onclick="refreshBalance(${p.id})">
                   <span class="material-symbols-outlined" style="font-size: 14px">refresh</span>
                   刷新余额
@@ -740,8 +1393,44 @@
         }
       }
 
+      // 加载配额模式到下拉框
+      async function loadQuotaMethodOptions() {
+        try {
+          const response = await fetch("/api/settings");
+          const settings = await response.json();
+          const quotaModes = settings.quotaModes || [];
+
+          // 更新添加弹窗的下拉框
+          const addSelect = document.getElementById("addQuotaMethod");
+          const editSelect = document.getElementById("editQuotaMethod");
+
+          // 清空现有选项（保留默认提示）
+          addSelect.innerHTML = '<option value="">请选择配额模式</option>';
+          editSelect.innerHTML = '<option value="">请选择配额模式</option>';
+
+          // 如果没有配额模式，显示提示
+          if (quotaModes.length === 0) {
+            addSelect.innerHTML =
+              '<option value="">暂无配额模式，请先在设置中添加</option>';
+            editSelect.innerHTML =
+              '<option value="">暂无配额模式，请先在设置中添加</option>';
+            return;
+          }
+
+          // 添加配额模式选项
+          quotaModes.forEach((quota) => {
+            const option = `<option value="${quota.id}">${quota.name} (${quota.currency})</option>`;
+            addSelect.innerHTML += option;
+            editSelect.innerHTML += option;
+          });
+        } catch (err) {
+          console.error("加载配额模式失败:", err);
+        }
+      }
+
       // Open/Close Add Modal
-      function openAddModal() {
+      async function openAddModal() {
+        await loadQuotaMethodOptions();
         document.getElementById("addModal").classList.add("active");
       }
 
@@ -806,7 +1495,7 @@
         }
       }
 
-      function openEditModal(
+      async function openEditModal(
         id,
         name,
         baseUrl,
@@ -816,13 +1505,13 @@
         quotaMethod,
       ) {
         currentEditId = id;
+        await loadQuotaMethodOptions();
         document.getElementById("editName").value = name;
         document.getElementById("editUrl").value = baseUrl;
         document.getElementById("editKey").value = apiKey;
         document.getElementById("editToken").value = token || "";
         document.getElementById("editUserId").value = userId || "";
-        document.getElementById("editQuotaMethod").value =
-          quotaMethod || "total";
+        document.getElementById("editQuotaMethod").value = quotaMethod || "";
         document.getElementById("editModal").classList.add("active");
       }
 
@@ -912,23 +1601,69 @@
 
           let data;
 
-          console.log("点点点的", response);
+          console.log("签到响应:", response);
+
+          // 检查是否为 404 错误
+          if (response.status === 404) {
+            // 记录该中转站不支持签到
+            const noCheckinProviders = JSON.parse(
+              localStorage.getItem("noCheckinProviders") || "[]",
+            );
+            if (!noCheckinProviders.includes(providerId)) {
+              noCheckinProviders.push(providerId);
+              localStorage.setItem(
+                "noCheckinProviders",
+                JSON.stringify(noCheckinProviders),
+              );
+            }
+
+            alert("❌ 该中转站不支持签到功能");
+            // 刷新中转站列表以禁用签到按钮
+            loadProviders();
+            return;
+          }
 
           try {
             data = await response.json();
-
-            console.log("dddd", data);
+            console.log("签到数据:", data);
           } catch (e) {
-            // 如果响应不是 JSON（比如 404 返回 "Not Found"）
+            // 如果响应不是 JSON
             alert(
-              `❌ 签到失败\n\n状态码: ${response.status}\n错误: 接口不存在或服务器未正确启动`,
+              `❌ 签到失败\n\n状态码: ${response.status}\n错误: 接口返回格式异常`,
             );
             return;
           }
 
           if (response.ok) {
-            // 签到成功
-            alert(`✅ 签到成功！\n\n${JSON.stringify(data, null, 2)}`);
+            // 检查是否已签到
+            const message = data.message || JSON.stringify(data);
+            const isAlreadyCheckedIn = message.includes("已签到");
+
+            if (isAlreadyCheckedIn) {
+              alert(`✅ ${message}`);
+            } else {
+              alert(`✅ 签到成功！\n\n${message}`);
+            }
+
+            // 记录该中转站已签到（带时间戳）
+            const checkedInProviders = JSON.parse(
+              localStorage.getItem("checkedInProviders") || "[]",
+            );
+            // 移除旧记录
+            const filtered = checkedInProviders.filter(
+              (item) => item.id !== providerId,
+            );
+            // 添加新记录
+            filtered.push({ id: providerId, checkedInAt: Date.now() });
+            localStorage.setItem(
+              "checkedInProviders",
+              JSON.stringify(filtered),
+            );
+
+            // 签到成功后自动刷新余额
+            await refreshBalance(providerId);
+            // 刷新中转站列表以更新按钮状态
+            loadProviders();
           } else {
             // 签到失败
             alert(
@@ -941,11 +1676,42 @@
         }
       }
 
-      // 更新额度计算方式
+      // 更新配额模式
       function updateQuotaMethod(providerId, method) {
-        console.log("更新额度计算方式:", providerId, method);
+        console.log("更新配额模式:", providerId, method);
         // TODO: 保存用户选择的计算方式，可以存储到 localStorage 或后端
         localStorage.setItem(`quota-method-${providerId}`, method);
+      }
+
+      // 刷新所有中转站余额
+      async function refreshAllBalances() {
+        try {
+          const res = await fetch("/api/providers");
+          const providers = await res.json();
+
+          // 过滤出配置了token的中转站
+          const providersWithToken = providers.filter((p) => p.token);
+
+          if (providersWithToken.length === 0) {
+            alert("没有配置令牌的中转站，无法刷新余额");
+            return;
+          }
+
+          // 提示用户开始刷新
+          console.log(
+            `开始刷新 ${providersWithToken.length} 个中转站的余额...`,
+          );
+
+          // 遍历所有配置了token的中转站并刷新余额
+          for (const provider of providersWithToken) {
+            await refreshBalance(provider.id);
+          }
+
+          console.log("所有余额刷新完成");
+        } catch (error) {
+          console.error("批量刷新余额失败:", error);
+          alert("批量刷新余额失败: " + error.message);
+        }
       }
 
       // 刷新余额
@@ -1019,38 +1785,43 @@
           const data = await response.json();
 
           if (response.ok) {
-            // 根据额度计算方式显示余额
-            let balance = 0;
-            const quotaMethod = provider.quotaMethod || "total";
+            // 获取配额模式列表
+            const settingsRes = await fetch("/api/settings");
+            const settings = await settingsRes.json();
+            const quotaModes = settings.quotaModes || [];
 
-            if (quotaMethod === "total") {
-              balance = (data.data?.quota || 0) / 500000; // 转换为人民币
-            } else if (quotaMethod === "used") {
-              balance = (data.data?.used_quota || 0) / 500000;
-            } else if (quotaMethod === "remaining") {
-              const total = data.data?.quota || 0;
-              const used = data.data?.used_quota || 0;
-              balance = (total - used) / 500000;
+            // 获取配额模式 ID，默认为 0（默认配额模式）
+            const quotaModeId = provider.quotaMethod
+              ? parseInt(provider.quotaMethod)
+              : 0;
+            const quotaMode =
+              quotaModes.find((q) => q.id === quotaModeId) || quotaModes[0];
+
+            if (!quotaMode) {
+              throw new Error("未找到配额模式配置");
             }
 
+            // 使用配额模式的比例和汇率计算余额（显示剩余额度）
+            const total = data.data?.quota || 0;
+            const used = data.data?.used_quota || 0;
+            // const remaining = total - used;
+            const balance = (total / quotaMode.ratio) * quotaMode.exchangeRate;
+
             // 计算历史消耗
-            const usedQuota = (data.data?.used_quota || 0) / 500000;
+            const usedQuota = (used / quotaMode.ratio) * quotaMode.exchangeRate;
+
+            // 获取币种符号
+            const currencySymbol = quotaMode.currency === "CNY" ? "¥" : "$";
 
             // 更新余额
-            balanceElement.textContent = `¥ ${balance.toFixed(2)}`;
-            const tipText =
-              quotaMethod === "total"
-                ? "总额度"
-                : quotaMethod === "used"
-                  ? "已使用"
-                  : "剩余额度";
+            balanceElement.textContent = `${currencySymbol} ${balance.toFixed(2)}`;
             balanceValueTip.innerHTML = `
               <span class="material-symbols-outlined" style="font-size: 10px">info</span>
-              ${tipText}
+              剩余额度
             `;
 
             // 更新历史消耗
-            usedValue.textContent = `¥ ${usedQuota.toFixed(2)}`;
+            usedValue.textContent = `${currencySymbol} ${usedQuota.toFixed(2)}`;
 
             // 隐藏加载提示,显示余额和消耗容器
             balanceTip.style.display = "none";
@@ -1102,9 +1873,871 @@
         }
       }
 
+      // Quota Mode Functions
+      let quotaModes = [];
+      let allSettings = {};
+      let currentEditQuotaId = null;
+
+      function openQuotaModal() {
+        currentEditQuotaId = null;
+        document.querySelector("#quotaModal .modal-header h3").textContent =
+          "添加配额模式";
+        document.querySelector(
+          '#quotaModal form button[type="submit"]',
+        ).textContent = "添加";
+        document.getElementById("quotaModal").classList.add("active");
+      }
+
+      function openEditQuotaModal(id, name, currency, ratio, exchangeRate) {
+        currentEditQuotaId = id;
+        document.querySelector("#quotaModal .modal-header h3").textContent =
+          "编辑配额模式";
+        document.querySelector(
+          '#quotaModal form button[type="submit"]',
+        ).textContent = "保存";
+        document.getElementById("quotaName").value = name;
+        document.getElementById("quotaCurrency").value = currency;
+        document.getElementById("quotaRatio").value = ratio;
+        document.getElementById("quotaExchangeRate").value = exchangeRate;
+        document.getElementById("quotaModal").classList.add("active");
+      }
+
+      function closeQuotaModal() {
+        document.getElementById("quotaModal").classList.remove("active");
+        currentEditQuotaId = null;
+        // Clear form
+        document.getElementById("quotaName").value = "";
+        document.getElementById("quotaCurrency").value = "CNY";
+        document.getElementById("quotaRatio").value = "500000";
+        document.getElementById("quotaExchangeRate").value = "1";
+      }
+
+      async function addQuotaMode(event) {
+        event.preventDefault();
+
+        const name = document.getElementById("quotaName").value.trim();
+        const currency = document.getElementById("quotaCurrency").value;
+        const ratio = parseFloat(document.getElementById("quotaRatio").value);
+        const exchangeRate = parseFloat(
+          document.getElementById("quotaExchangeRate").value,
+        );
+
+        if (!name || !currency || !ratio) {
+          alert("请填写完整信息");
+          return;
+        }
+
+        try {
+          const isEdit = currentEditQuotaId !== null;
+          const url = isEdit
+            ? `/api/settings/quotaModes/${currentEditQuotaId}`
+            : "/api/settings/quotaModes";
+          const method = isEdit ? "PUT" : "POST";
+
+          const response = await fetch(url, {
+            method: method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, currency, ratio, exchangeRate }),
+          });
+
+          if (!response.ok) throw new Error(isEdit ? "更新失败" : "添加失败");
+
+          closeQuotaModal();
+          await loadQuotaModes();
+
+          // 如果列表是隐藏的，自动展开
+          const container = document.getElementById("quotaListContainer");
+          if (container.style.display === "none") {
+            toggleQuotaList();
+          }
+        } catch (err) {
+          alert(
+            (currentEditQuotaId ? "更新" : "添加") + "配额失败: " + err.message,
+          );
+        }
+      }
+
+      function toggleQuotaList() {
+        const container = document.getElementById("quotaListContainer");
+        const toggleBtn = document.getElementById("quotaToggleBtn");
+        const toggleIcon = document.getElementById("quotaToggleIcon");
+
+        if (container.style.display === "none") {
+          container.style.display = "block";
+          toggleBtn.classList.add("expanded");
+          toggleIcon.textContent = "expand_less";
+        } else {
+          container.style.display = "none";
+          toggleBtn.classList.remove("expanded");
+          toggleIcon.textContent = "expand_more";
+        }
+      }
+
+      async function deleteQuotaMode(id) {
+        if (!confirm("确定要删除此配额配置吗？")) return;
+
+        try {
+          const response = await fetch(`/api/settings/quotaModes/${id}`, {
+            method: "DELETE",
+          });
+
+          if (!response.ok) throw new Error("删除失败");
+
+          await loadQuotaModes();
+        } catch (err) {
+          alert("删除配额失败: " + err.message);
+        }
+      }
+
+      async function loadQuotaModes() {
+        try {
+          const response = await fetch("/api/settings");
+          const settings = await response.json();
+          quotaModes = settings.quotaModes || [];
+
+          const listContainer = document.getElementById("quotaList");
+
+          if (quotaModes.length === 0) {
+            listContainer.innerHTML = `
+              <div class="empty-quota-state">
+                <span class="material-symbols-outlined" style="font-size: 32px; opacity: 0.3;">payments</span>
+                <p>暂无配额配置</p>
+              </div>
+            `;
+            return;
+          }
+
+          listContainer.innerHTML = quotaModes
+            .map(
+              (quota) => `
+            <div class="quota-item">
+              <div class="quota-item-info">
+                <div class="quota-item-name">
+                  ${quota.name}
+                  <span class="currency-badge">${quota.currency}</span>
+                  ${quota.isDefault ? '<span class="default-badge">默认</span>' : ""}
+                </div>
+                <div class="quota-item-details">
+                  <span>比例: ${quota.ratio.toLocaleString()}</span>
+                  <span>汇率: ${quota.exchangeRate}</span>
+                </div>
+              </div>
+              <div class="quota-item-actions">
+                ${
+                  !quota.isDefault
+                    ? `
+                  <button class="btn btn-primary btn-small" onclick="openEditQuotaModal(${quota.id}, '${quota.name.replace(/'/g, "\\'")}', '${quota.currency}', ${quota.ratio}, ${quota.exchangeRate})">
+                    <span class="material-symbols-outlined" style="font-size: 14px">edit</span>
+                  </button>
+                  <button class="btn btn-danger btn-small" onclick="deleteQuotaMode(${quota.id})">
+                    <span class="material-symbols-outlined" style="font-size: 14px">delete</span>
+                  </button>
+                `
+                    : `
+                  <span style="font-size: 12px; color: var(--text-muted); padding: 0 8px;">系统默认，不可编辑</span>
+                `
+                }
+              </div>
+            </div>
+          `,
+            )
+            .join("");
+        } catch (err) {
+          console.error("加载配额模式失败:", err);
+        }
+      }
+
+      // Close quota modal when clicking outside
+      document
+        .getElementById("quotaModal")
+        .addEventListener("click", function (e) {
+          if (e.target === this) {
+            closeQuotaModal();
+          }
+        });
+
+      // Environment Variables Functions
+      let currentEnvKey = null;
+
+      function openEnvModal() {
+        currentEnvKey = null;
+        document.querySelector("#envModal .modal-header h3").textContent =
+          "添加环境变量";
+        document.querySelector(
+          '#envModal form button[type="submit"]',
+        ).textContent = "保存";
+        document.getElementById("envKey").disabled = false;
+        document.getElementById("envModal").classList.add("active");
+      }
+
+      function openEditEnvModal(key, value) {
+        currentEnvKey = key;
+        document.querySelector("#envModal .modal-header h3").textContent =
+          "编辑环境变量";
+        document.querySelector(
+          '#envModal form button[type="submit"]',
+        ).textContent = "保存";
+        document.getElementById("envKey").value = key;
+        document.getElementById("envKey").disabled = true; // 不允许修改变量名
+        document.getElementById("envValue").value = value;
+        document.getElementById("envModal").classList.add("active");
+      }
+
+      function closeEnvModal() {
+        document.getElementById("envModal").classList.remove("active");
+        currentEnvKey = null;
+        document.getElementById("envKey").value = "";
+        document.getElementById("envKey").disabled = false;
+        document.getElementById("envValue").value = "";
+      }
+
+      async function saveEnvVariable(event) {
+        event.preventDefault();
+
+        const key = document
+          .getElementById("envKey")
+          .value.trim()
+          .toUpperCase();
+        const value = document.getElementById("envValue").value.trim();
+
+        if (!key || !value) {
+          alert("请填写完整信息");
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/settings");
+          const settings = await response.json();
+
+          // 更新或添加环境变量
+          if (!settings.envVariables) {
+            settings.envVariables = {};
+          }
+          settings.envVariables[key] = value;
+
+          // 保存设置到 settings.json
+          const saveResponse = await fetch("/api/settings", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(settings),
+          });
+
+          if (!saveResponse.ok) throw new Error("保存失败");
+
+          closeEnvModal();
+          await loadEnvVariables();
+
+          // 如果列表是隐藏的，自动展开
+          const container = document.getElementById("envListContainer");
+          if (container.style.display === "none") {
+            toggleEnvList();
+          }
+
+          alert(
+            '✅ 环境变量已保存到配置文件，点击"写入系统"按钮可将配置写入系统环境变量',
+          );
+        } catch (err) {
+          alert("❌ 保存环境变量失败: " + err.message);
+        }
+      }
+
+      function toggleEnvList() {
+        const container = document.getElementById("envListContainer");
+        const toggleBtn = document.getElementById("envToggleBtn");
+        const toggleIcon = document.getElementById("envToggleIcon");
+
+        if (container.style.display === "none") {
+          container.style.display = "block";
+          toggleBtn.classList.add("expanded");
+          toggleIcon.textContent = "expand_less";
+        } else {
+          container.style.display = "none";
+          toggleBtn.classList.remove("expanded");
+          toggleIcon.textContent = "expand_more";
+        }
+      }
+
+      async function deleteEnvVariable(key, deleteFromSystem = false) {
+        // 如果不是从系统删除，先确认是否要删除
+        if (!deleteFromSystem) {
+          if (
+            !confirm(
+              `确定要删除环境变量 "${key}" 吗？\n\n这将从配置文件中删除该变量。`,
+            )
+          )
+            return;
+        }
+
+        try {
+          const response = await fetch("/api/settings");
+          const settings = await response.json();
+
+          if (settings.envVariables && settings.envVariables[key]) {
+            delete settings.envVariables[key];
+
+            const saveResponse = await fetch("/api/settings", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(settings),
+            });
+
+            if (!saveResponse.ok) throw new Error("删除失败");
+
+            await loadEnvVariables();
+
+            if (!deleteFromSystem) {
+              alert("✅ 环境变量已从配置文件中删除");
+            }
+          }
+        } catch (err) {
+          alert("❌ 删除环境变量失败: " + err.message);
+        }
+      }
+
+      // 从系统中删除环境变量
+      async function deleteEnvFromSystem(key) {
+        if (
+          !confirm(
+            `⚠️ 确定要从系统环境变量中删除 "${key}" 吗？\n\n这将从您的系统环境变量中永久删除此变量。`,
+          )
+        )
+          return;
+
+        try {
+          const deleteResponse = await fetch("/api/settings/env/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key }),
+          });
+
+          if (deleteResponse.ok) {
+            const result = await deleteResponse.json();
+
+            // 同时从配置文件中删除
+            await deleteEnvVariable(key, true);
+
+            let message = `✅ 环境变量 "${key}" 已从系统中删除`;
+            if (result.needsReload) {
+              message += "\n\n" + result.reloadMessage;
+            }
+            alert(message);
+          } else {
+            const errorData = await deleteResponse.json();
+            alert(`❌ 从系统删除失败: ${errorData.message || errorData.error}`);
+          }
+        } catch (err) {
+          alert("❌ 从系统删除环境变量失败: " + err.message);
+        }
+      }
+
+      // 写入所有环境变量到系统
+      async function writeEnvToSystem() {
+        if (
+          !confirm(
+            "⚠️ 确定要将所有环境变量写入系统级别吗？\n\n这将修改您的系统环境变量设置。",
+          )
+        )
+          return;
+
+        try {
+          const response = await fetch("/api/settings");
+          const settings = await response.json();
+          const envVariables = settings.envVariables || {};
+
+          if (Object.keys(envVariables).length === 0) {
+            alert("⚠️ 没有可写入的环境变量");
+            return;
+          }
+
+          let successCount = 0;
+          let failCount = 0;
+          const errors = [];
+
+          // 遍历所有环境变量并写入系统
+          for (const [key, value] of Object.entries(envVariables)) {
+            try {
+              const writeResponse = await fetch("/api/settings/env/update", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ key, value }),
+              });
+
+              if (writeResponse.ok) {
+                successCount++;
+              } else {
+                const errorData = await writeResponse.json();
+                failCount++;
+                errors.push(`${key}: ${errorData.error || "写入失败"}`);
+              }
+            } catch (err) {
+              failCount++;
+              errors.push(`${key}: ${err.message}`);
+            }
+          }
+
+          // 显示结果
+          let message = `✅ 写入完成！\n\n成功: ${successCount} 个\n失败: ${failCount} 个`;
+
+          if (errors.length > 0) {
+            message += "\n\n失败详情:\n" + errors.join("\n");
+          }
+
+          if (successCount > 0) {
+            message += "\n\n💡 提示: 新打开的应用程序将使用新的环境变量值";
+          }
+
+          alert(message);
+        } catch (err) {
+          alert("❌ 写入系统环境变量失败: " + err.message);
+        }
+      }
+
+      async function loadEnvVariables() {
+        try {
+          const response = await fetch("/api/settings");
+          const settings = await response.json();
+          const envVariables = settings.envVariables || {};
+
+          const listContainer = document.getElementById("envList");
+          const envKeys = Object.keys(envVariables);
+
+          if (envKeys.length === 0) {
+            listContainer.innerHTML = `
+              <div class="empty-quota-state">
+                <span class="material-symbols-outlined" style="font-size: 32px; opacity: 0.3;">settings_applications</span>
+                <p>暂无环境变量配置</p>
+              </div>
+            `;
+            return;
+          }
+
+          listContainer.innerHTML = envKeys
+            .map((key) => {
+              const value = envVariables[key];
+              const isSystemVar = ["PORT", "NODE_ENV"].includes(key);
+
+              return `
+              <div class="quota-item">
+                <div class="quota-item-info">
+                  <div class="quota-item-name">
+                    ${key}
+                    ${isSystemVar ? '<span class="default-badge">系统</span>' : ""}
+                  </div>
+                  <div class="quota-item-details">
+                    <span style="font-family: 'JetBrains Mono', monospace;">${value}</span>
+                  </div>
+                </div>
+                <div class="quota-item-actions">
+                  <button class="btn btn-primary btn-small" onclick="openEditEnvModal('${key}', '${value.replace(/'/g, "\\'")}')">
+                    <span class="material-symbols-outlined" style="font-size: 14px">edit</span>
+                  </button>
+                  <button class="btn btn-secondary btn-small" onclick="deleteEnvVariable('${key}')" title="仅从配置文件中删除">
+                    <span class="material-symbols-outlined" style="font-size: 14px">delete</span>
+                    删除
+                  </button>
+                  <button class="btn btn-danger btn-small" onclick="deleteEnvFromSystem('${key}')" title="从系统环境变量中删除">
+                    <span class="material-symbols-outlined" style="font-size: 14px">delete_forever</span>
+                    系统删除
+                  </button>
+                </div>
+              </div>
+            `;
+            })
+            .join("");
+        } catch (err) {
+          console.error("加载环境变量失败:", err);
+        }
+      }
+
+      // Close env modal when clicking outside
+      document
+        .getElementById("envModal")
+        .addEventListener("click", function (e) {
+          if (e.target === this) {
+            closeEnvModal();
+          }
+        });
+
+      // API Key Generation Functions
+      function generateApiKey() {
+        // 生成符合OpenAI格式的API Key: sk- + 48个随机字符
+        const chars =
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        let key = "sk-";
+
+        for (let i = 0; i < 48; i++) {
+          const randomIndex = Math.floor(Math.random() * chars.length);
+          key += chars[randomIndex];
+        }
+
+        document.getElementById("apiKey").value = key;
+      }
+
+      async function copyApiKey() {
+        const apiKey = document.getElementById("apiKey").value;
+
+        if (!apiKey) {
+          alert("⚠️ 请先生成API Key");
+          return;
+        }
+
+        try {
+          await navigator.clipboard.writeText(apiKey);
+
+          // 临时改变按钮文字
+          const btn = document.getElementById("copyKeyBtn");
+          const originalHTML = btn.innerHTML;
+          btn.innerHTML =
+            '<span class="material-symbols-outlined" style="font-size: 14px">check</span> 已复制';
+          btn.classList.add("btn-success");
+          btn.classList.remove("btn-secondary");
+
+          setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove("btn-success");
+            btn.classList.add("btn-secondary");
+          }, 2000);
+        } catch (err) {
+          alert("❌ 复制失败: " + err.message);
+        }
+      }
+
+      // 写入API配置到系统环境变量和Claude配置文件
+      async function writeApiConfigToSystem() {
+        const baseUrl = document.getElementById("apiBaseUrl").value.trim();
+        const apiKey = document.getElementById("apiKey").value.trim();
+
+        // 验证输入
+        if (!baseUrl) {
+          alert("⚠️ 请先输入Base URL");
+          return;
+        }
+
+        if (!apiKey) {
+          alert("⚠️ 请先生成API Key");
+          return;
+        }
+
+        if (
+          !confirm(
+            "⚠️ 确定要将API配置写入系统环境变量和Claude配置文件吗？\n\n这将执行以下操作：\n1. 设置系统环境变量：ANTHROPIC_BASE_URL, ANTHROPIC_API_KEY\n2. 更新 ~/.claude/settings.json 文件",
+          )
+        ) {
+          return;
+        }
+
+        try {
+          let successCount = 0;
+          let failCount = 0;
+          const errors = [];
+
+          // 写入 ANTHROPIC_BASE_URL
+          try {
+            const baseUrlResponse = await fetch("/api/settings/env/update", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                key: "ANTHROPIC_BASE_URL",
+                value: baseUrl,
+              }),
+            });
+
+            if (baseUrlResponse.ok) {
+              successCount++;
+            } else {
+              const errorData = await baseUrlResponse.json();
+              failCount++;
+              errors.push(
+                `系统环境变量 ANTHROPIC_BASE_URL: ${errorData.error || errorData.message || "写入失败"}`,
+              );
+            }
+          } catch (err) {
+            failCount++;
+            errors.push(`系统环境变量 ANTHROPIC_BASE_URL: ${err.message}`);
+          }
+
+          // 写入 ANTHROPIC_API_KEY
+          try {
+            const apiKeyResponse = await fetch("/api/settings/env/update", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                key: "ANTHROPIC_API_KEY",
+                value: apiKey,
+              }),
+            });
+
+            if (apiKeyResponse.ok) {
+              successCount++;
+            } else {
+              const errorData = await apiKeyResponse.json();
+              failCount++;
+              errors.push(
+                `系统环境变量 ANTHROPIC_API_KEY: ${errorData.error || errorData.message || "写入失败"}`,
+              );
+            }
+          } catch (err) {
+            failCount++;
+            errors.push(`系统环境变量 ANTHROPIC_API_KEY: ${err.message}`);
+          }
+
+          // 写入 Claude 配置文件
+          try {
+            const claudeResponse = await fetch("/api/settings/claude/update", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                baseUrl: baseUrl,
+                apiKey: apiKey,
+              }),
+            });
+
+            if (claudeResponse.ok) {
+              successCount++;
+            } else {
+              const errorData = await claudeResponse.json();
+              failCount++;
+              errors.push(
+                `Claude 配置文件: ${errorData.error || errorData.message || "写入失败"}`,
+              );
+            }
+          } catch (err) {
+            failCount++;
+            errors.push(`Claude 配置文件: ${err.message}`);
+          }
+
+          // 显示结果
+          let message = `✅ 写入完成！\n\n成功: ${successCount} 个\n失败: ${failCount} 个`;
+
+          if (errors.length > 0) {
+            message += "\n\n失败详情:\n" + errors.join("\n");
+          }
+
+          if (successCount > 0) {
+            message += "\n\n💡 提示:\n";
+            message +=
+              "- 系统环境变量已更新（ANTHROPIC_BASE_URL, ANTHROPIC_API_KEY）\n";
+            message += "- Claude 配置文件已更新 (~/.claude/settings.json)\n";
+            message += "- Windows: 新打开的应用将使用新的环境变量值\n";
+            message +=
+              "- Mac/Linux: 请重新打开终端或执行 source ~/.zshrc (或 ~/.bashrc) 使环境变量生效";
+          }
+
+          alert(message);
+        } catch (err) {
+          alert("❌ 写入失败: " + err.message);
+        }
+      }
+
+      // Settings Page Functions
+      async function toggleAutoRefresh(enabled) {
+        autoRefreshEnabled = enabled;
+        await saveSettings({ general: { autoRefresh: enabled } });
+
+        // 如果在日志页面，更新定时器
+        if (
+          document.getElementById("logs-panel").classList.contains("active")
+        ) {
+          if (logsRefreshInterval) {
+            clearInterval(logsRefreshInterval);
+            logsRefreshInterval = null;
+          }
+          if (enabled) {
+            logsRefreshInterval = setInterval(loadLogs, currentRefreshInterval);
+          }
+        }
+      }
+
+      async function updateRefreshInterval(seconds) {
+        currentRefreshInterval = seconds * 1000;
+        await saveSettings({ general: { refreshInterval: parseInt(seconds) } });
+
+        // 如果自动刷新启用且在日志页面，重启定时器
+        if (
+          autoRefreshEnabled &&
+          document.getElementById("logs-panel").classList.contains("active")
+        ) {
+          if (logsRefreshInterval) {
+            clearInterval(logsRefreshInterval);
+          }
+          logsRefreshInterval = setInterval(loadLogs, currentRefreshInterval);
+        }
+      }
+
+      async function saveSettings(updates) {
+        try {
+          const response = await fetch("/api/settings", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updates),
+          });
+
+          if (!response.ok) throw new Error("保存失败");
+
+          allSettings = await response.json();
+        } catch (err) {
+          console.error("保存设置失败:", err);
+        }
+      }
+
+      async function loadSettings() {
+        try {
+          const response = await fetch("/api/settings");
+          allSettings = await response.json();
+
+          // 应用常规设置
+          autoRefreshEnabled = allSettings.general.autoRefresh;
+          currentRefreshInterval = allSettings.general.refreshInterval * 1000;
+
+          document.getElementById("autoRefresh").checked =
+            allSettings.general.autoRefresh;
+          document.getElementById("refreshInterval").value =
+            allSettings.general.refreshInterval;
+          document.getElementById("maxLogs").value =
+            allSettings.general.maxLogs;
+
+          // 应用中转站设置
+          document.getElementById("retryAttempts").value =
+            allSettings.provider.retryAttempts;
+          document.getElementById("requestTimeout").value =
+            allSettings.provider.requestTimeout;
+          document.getElementById("autoDisable").checked =
+            allSettings.provider.autoDisable;
+
+          // 应用通知设置
+          document.getElementById("notifyOnError").checked =
+            allSettings.notification.notifyOnError;
+          document.getElementById("notifyOnProviderDown").checked =
+            allSettings.notification.notifyOnProviderDown;
+          document.getElementById("soundEnabled").checked =
+            allSettings.notification.soundEnabled;
+
+          // 加载配额模式
+          await loadQuotaModes();
+
+          // 加载环境变量
+          await loadEnvVariables();
+
+          // 更新运行时间
+          updateUptime();
+        } catch (err) {
+          console.error("加载设置失败:", err);
+        }
+      }
+
+      function updateUptime() {
+        // 简单的运行时间显示
+        const uptimeElement = document.getElementById("uptime");
+        if (uptimeElement) {
+          const startTime = localStorage.getItem("startTime");
+          if (!startTime) {
+            localStorage.setItem("startTime", Date.now());
+            uptimeElement.textContent = "刚刚启动";
+          } else {
+            const elapsed = Date.now() - parseInt(startTime);
+            const hours = Math.floor(elapsed / 3600000);
+            const minutes = Math.floor((elapsed % 3600000) / 60000);
+            uptimeElement.textContent = `${hours}小时 ${minutes}分钟`;
+          }
+        }
+      }
+
+      async function clearAllLogs() {
+        if (!confirm("⚠️ 确定要清空所有日志吗？此操作无法撤销！")) return;
+        try {
+          await fetch("/api/logs", { method: "DELETE" });
+          alert("✅ 所有日志已清空");
+          loadStats();
+          if (
+            document.getElementById("logs-panel").classList.contains("active")
+          ) {
+            loadLogs();
+          }
+        } catch (err) {
+          alert("❌ 清空日志失败: " + err.message);
+        }
+      }
+
+      async function resetAllSettings() {
+        if (!confirm("⚠️ 确定要重置所有设置为默认值吗？")) return;
+
+        try {
+          const response = await fetch("/api/settings/reset", {
+            method: "POST",
+          });
+
+          if (!response.ok) throw new Error("重置失败");
+
+          alert("✅ 所有设置已重置为默认值");
+
+          // 重新加载设置到UI
+          await loadSettings();
+        } catch (err) {
+          alert("❌ 重置设置失败: " + err.message);
+        }
+      }
+
+      async function clearAllProviders() {
+        if (
+          !confirm("⚠️ 危险操作！确定要删除所有中转站配置吗？此操作无法撤销！")
+        )
+          return;
+        if (!confirm("⚠️⚠️ 再次确认：真的要删除所有中转站吗？")) return;
+
+        try {
+          const res = await fetch("/api/providers");
+          const providers = await res.json();
+
+          for (const provider of providers) {
+            await fetch(`/api/providers/${provider.id}`, { method: "DELETE" });
+          }
+
+          alert("✅ 所有中转站已删除");
+          loadProviders();
+          loadStats();
+        } catch (err) {
+          alert("❌ 删除失败: " + err.message);
+        }
+      }
+
+      // 页面加载时自动刷新所有中转站余额
+      async function autoRefreshBalancesOnLoad() {
+        try {
+          const res = await fetch("/api/providers");
+          const providers = await res.json();
+
+          // 过滤出配置了token的中转站
+          const providersWithToken = providers.filter((p) => p.token);
+
+          console.log(
+            `页面加载：开始自动刷新 ${providersWithToken.length} 个中转站的余额...`,
+          );
+
+          // 遍历所有配置了token的中转站并刷新余额
+          for (const provider of providersWithToken) {
+            await refreshBalance(provider.id);
+          }
+
+          console.log("页面加载：所有余额刷新完成");
+        } catch (error) {
+          console.error("页面加载：自动刷新余额失败:", error);
+        }
+      }
+
       // Initialize - 仅在页面加载时获取一次数据
       loadProviders();
       loadStats();
+
+      // 初始化设置（从API加载）
+      loadSettings().catch((err) => {
+        console.error("初始化设置失败:", err);
+        // 如果API失败，使用默认值
+        autoRefreshEnabled = true;
+        currentRefreshInterval = 5000;
+      });
+
+      // 页面加载完成后自动刷新余额
+      autoRefreshBalancesOnLoad();
     </script>
   </body>
 </html>

@@ -1,0 +1,35 @@
+{
+  "general": {
+    "autoRefresh": true,
+    "refreshInterval": 5,
+    "maxLogs": 100
+  },
+  "provider": {
+    "retryAttempts": 3,
+    "requestTimeout": 60,
+    "autoDisable": false
+  },
+  "notification": {
+    "notifyOnError": true,
+    "notifyOnProviderDown": true,
+    "soundEnabled": false
+  },
+  "quotaModes": [
+    {
+      "id": 0,
+      "name": "默认",
+      "currency": "CNY",
+      "ratio": 500000,
+      "exchangeRate": 1,
+      "isDefault": true
+    },
+    {
+      "id": 1770523007400,
+      "name": "美元模式",
+      "currency": "USD",
+      "ratio": 500000,
+      "exchangeRate": 1
+    }
+  ],
+  "envVariables": {}
+}

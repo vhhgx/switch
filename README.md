@@ -290,3 +290,21 @@ MIT License
 如有问题或建议，请提交 Issue 或 Pull Request。
 
 **享受智能的 Claude Code 体验！** 🎉
+
+
+
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://127.0.0.1:8045/",
+    "ANTHROPIC_MODEL": "",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "",
+    "ANTHROPIC_AUTH_TOKEN": "sk-609bbfda7d864bdbb6d599c6f2f3f23a",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+  },
+  "codemossProviderId": "4b037096-44d9-4138-a27d-12703f4d662b",
+  "permissions": {
+    "allow": []
+  }
+}
