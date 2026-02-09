@@ -1660,10 +1660,10 @@
               JSON.stringify(filtered),
             );
 
+            // 刷新中转站列表以更新按钮状态
+            await loadProviders();
             // 签到成功后自动刷新余额
             await refreshBalance(providerId);
-            // 刷新中转站列表以更新按钮状态
-            loadProviders();
           } else {
             // 签到失败
             alert(

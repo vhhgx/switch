@@ -9,9 +9,10 @@ import axios from "axios";
  */
 const getUserSelf = async (baseUrl, token, userId) => {
   try {
+    const normalizedUrl = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
     const response = await axios({
       method: "GET",
-      url: `${baseUrl}api/user/self`,
+      url: `${normalizedUrl}api/user/self`,
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -45,9 +46,10 @@ const getUserSelf = async (baseUrl, token, userId) => {
  */
 const userCheckIn = async (baseUrl, token, userId) => {
   try {
+    const normalizedUrl = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
     const response = await axios({
       method: "POST",
-      url: `${baseUrl}api/user/checkin`,
+      url: `${normalizedUrl}api/user/checkin`,
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
