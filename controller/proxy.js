@@ -105,6 +105,33 @@ const handleProxyRequest = async (ctx) => {
         }
       }
 
+      // 为 stream 添加错误处理包装器
+      if (response.data && typeof response.data.pipe === 'function') {
+        const originalStream = response.data
+
+        // 监听 stream 错误
+        originalStream.on('error', (err) => {
+          console.error(`❌ [${provider.name}] Stream 传输中断: ${err.message}`)
+          console.error(`   错误代码: ${err.code || 'UNKNOWN'}`)
+          console.error(`   提示: 数据已部分传输，无法切换到其他中转站`)
+          console.error(`   建议: 1) 检查网络连接 2) 尝试更换中转站 3) 增加超时时间`)
+
+          // 记录失败日志
+          logEntry.status = 502
+          logEntry.provider = provider.name
+          logEntry.duration = Date.now() - startTime
+          logEntry.success = false
+          if (ctx.request.body && ctx.request.body.model) {
+            logEntry.model = ctx.request.body.model
+          }
+          logService.addLog(logEntry)
+        })
+
+        originalStream.on('end', () => {
+          console.log(`✅ [${provider.name}] Stream 传输完成`)
+        })
+      }
+
       ctx.body = response.data
 
       logEntry.status = response.status
@@ -129,9 +156,35 @@ const handleProxyRequest = async (ctx) => {
       console.log(`✅ [${provider.name}] 请求成功 (${response.status})`)
       return
     } catch (err) {
+      const errorDetails = {
+        message: err.message,
+        code: err.code,
+        status: err.response?.status
+      }
+
       console.error(`❌ [${provider.name}] 连接失败: ${err.message}`)
+
+      // 详细的错误原因分析
       if (err.code === 'ECONNABORTED') {
-        console.error(`   (原因: 请求超时，请检查该中转站是否被墙或 URL 错误)`)
+        console.error(`   原因: 请求超时 (${err.message})`)
+        console.error(`   建议: 检查中转站是否被墙或 URL 是否正确`)
+      } else if (err.code === 'ECONNRESET') {
+        console.error(`   原因: 连接被重置`)
+        console.error(`   建议: 1) 网络不稳定 2) 服务器过载 3) 防火墙拦截`)
+      } else if (err.code === 'ENOTFOUND') {
+        console.error(`   原因: 域名解析失败`)
+        console.error(`   建议: 检查 DNS 设置或域名是否正确`)
+      } else if (err.code === 'ETIMEDOUT') {
+        console.error(`   原因: 连接超时`)
+        console.error(`   建议: 检查网络连接或增加超时时间`)
+      } else {
+        console.error(`   错误代码: ${err.code || 'UNKNOWN'}`)
+      }
+
+      // 如果还有其他 provider，尝试切换
+      const currentIndex = providers.indexOf(provider)
+      if (currentIndex < providers.length - 1) {
+        console.log(`   ↻ 正在切换到下一个中转站...`)
       }
     }
   }

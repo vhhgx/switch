@@ -41,6 +41,16 @@ async function forwardRequest(provider, ctx) {
     proxy: false
   })
 
+  // 为 stream 添加错误处理
+  if (response.data && typeof response.data.on === 'function') {
+    response.data.on('error', (err) => {
+      console.error(`❌ [${provider.name}] Stream 传输错误: ${err.message}`)
+      if (err.code === 'ECONNRESET') {
+        console.error(`   (原因: 连接被远程服务器重置，可能是网络不稳定或服务器过载)`)
+      }
+    })
+  }
+
   return response
 }
 
