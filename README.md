@@ -83,7 +83,7 @@ npm start
 
     代理已启动
     --------------------------------
-    端口: 5678
+    端口: 5679
     --------------------------------
 ```
 
@@ -131,7 +131,7 @@ npm start
 
 ### 1. 启动管理界面
 
-访问 http://localhost:5678，你会看到管理后台：
+访问 http://localhost:5679，你会看到管理后台：
 
 ![管理界面](https://via.placeholder.com/600x300?text=Claude+Proxy+Switcher)
 
@@ -156,14 +156,14 @@ npm start
 
 ```json
 {
-  "apiUrl": "http://localhost:5678"
+  "apiUrl": "http://localhost:5679"
 }
 ```
 
 或使用环境变量：
 
 ```bash
-export ANTHROPIC_BASE_URL=http://localhost:5678
+export ANTHROPIC_BASE_URL=http://localhost:5679
 ```
 
 ### 4. 使用 Web 界面配置环境变量（推荐）
@@ -323,7 +323,7 @@ Object.keys(response.headers).forEach((key) => {
 
 ```javascript
 export default {
-  port: 5678, // 改为其他端口，如 8080
+  port: 5679, // 改为其他端口，如 8080
 };
 ```
 

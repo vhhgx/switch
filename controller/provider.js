@@ -5,8 +5,9 @@ const getAll = async (ctx) => {
 }
 
 const create = async (ctx) => {
-  providerService.addProvider(ctx.request.body)
-  ctx.body = { success: true }
+  const newProvider = providerService.addProvider(ctx.request.body)
+  // 返回新创建的provider（数组的最后一个元素）
+  ctx.body = newProvider[newProvider.length - 1]
 }
 
 const toggle = async (ctx) => {
@@ -17,8 +18,8 @@ const toggle = async (ctx) => {
 
 const update = async (ctx) => {
   const id = parseInt(ctx.params.id)
-  providerService.updateProvider(id, ctx.request.body)
-  ctx.body = { success: true }
+  const updatedProvider = providerService.updateProvider(id, ctx.request.body)
+  ctx.body = updatedProvider
 }
 
 const remove = async (ctx) => {

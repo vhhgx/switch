@@ -54,21 +54,38 @@
     </div>
 
     <div class="provider-actions">
-      <div class="action-row">
+      <div v-if="provider.token" class="action-row">
         <button
-          v-if="provider.token"
+          class="btn btn-success btn-small"
+          @click="$emit('checkin', provider.id)"
+        >
+          <span class="material-symbols-outlined" style="font-size: 14px">event_available</span>
+          签到
+        </button>
+        <button
           class="btn btn-secondary btn-small"
           @click="$emit('refresh-balance', provider.id)"
         >
           <span class="material-symbols-outlined" style="font-size: 14px">refresh</span>
           刷新余额
         </button>
+      </div>
+      <div class="action-row">
         <button
-          class="btn btn-secondary btn-small"
+          class="btn btn-primary btn-small"
           @click="$emit('edit', provider)"
         >
           <span class="material-symbols-outlined" style="font-size: 14px">edit</span>
           编辑
+        </button>
+        <button
+          :class="['btn', 'btn-small', provider.enabled ? 'btn-secondary' : 'btn-success']"
+          @click="$emit('toggle', provider.id)"
+        >
+          <span class="material-symbols-outlined" style="font-size: 14px">
+            {{ provider.enabled ? 'pause' : 'play_arrow' }}
+          </span>
+          {{ provider.enabled ? '暂停' : '启用' }}
         </button>
         <button
           class="btn btn-danger btn-small"
@@ -90,7 +107,7 @@ defineProps({
   }
 })
 
-defineEmits(['edit', 'delete', 'toggle', 'test', 'refresh-balance'])
+defineEmits(['edit', 'delete', 'toggle', 'test', 'refresh-balance', 'checkin'])
 
 function formatBalance(value) {
   if (value === undefined || value === null) return '0.00'

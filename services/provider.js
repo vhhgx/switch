@@ -44,6 +44,7 @@ const updateProvider = (id, updateData) => {
     if (updateData.token !== undefined) item.token = updateData.token
     if (updateData.userId !== undefined) item.userId = updateData.userId
     if (updateData.quotaMethod !== undefined) item.quotaMethod = updateData.quotaMethod
+    if (updateData.enabled !== undefined) item.enabled = updateData.enabled
   }
   saveProviders(providers)
   return item

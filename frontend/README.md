@@ -54,7 +54,7 @@ frontend/
 
 ### 前提条件
 
-1. 确保后端服务器正在运行（默认端口 5678）
+1. 确保后端服务器正在运行（默认端口 5679）
 2. Node.js 版本 >= 16
 
 ### 启动步骤
@@ -81,7 +81,7 @@ npm run dev
 
 ### 前后端联调
 
-Vite 已配置代理，所有 `/api` 请求会自动转发到后端 `localhost:5678`：
+Vite 已配置代理，所有 `/api` 请求会自动转发到后端 `localhost:5679`：
 
 ```javascript
 // vite.config.js
@@ -89,7 +89,7 @@ server: {
   port: 5173,
   proxy: {
     '/api': {
-      target: 'http://localhost:5678',
+      target: 'http://localhost:5679',
       changeOrigin: true
     }
   }

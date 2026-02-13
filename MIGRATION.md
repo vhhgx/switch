@@ -1226,7 +1226,7 @@ npm run preview
 
 #### 1.6 前后端联调配置
 
-由于你的 Node.js 后端运行在 `localhost:5678`，而 Vite 开发服务器默认运行在 `localhost:5173`，需要配置代理来实现前后端联调。
+由于你的 Node.js 后端运行在 `localhost:5679`，而 Vite 开发服务器默认运行在 `localhost:5173`，需要配置代理来实现前后端联调。
 
 **配置步骤**：
 
@@ -1253,7 +1253,7 @@ export default defineConfig({
     proxy: {
       // 所有以 /api 开头的请求都会被代理到后端
       '/api': {
-        target: 'http://localhost:5678', // 后端服务器地址
+        target: 'http://localhost:5679', // 后端服务器地址
         changeOrigin: true,
         // 如果后端 API 路径不包含 /api 前缀，可以使用 rewrite
         // rewrite: (path) => path.replace(/^\/api/, '')
@@ -1265,7 +1265,7 @@ export default defineConfig({
 
 **代理说明**：
 - 前端请求 `http://localhost:5173/api/providers`
-- Vite 会自动转发到 `http://localhost:5678/api/providers`
+- Vite 会自动转发到 `http://localhost:5679/api/providers`
 - 浏览器不会有跨域问题
 
 ##### 2. 配置环境变量
@@ -1284,7 +1284,7 @@ VITE_API_BASE_URL=/api
 
 ```bash
 # 生产环境 - API 基础路径
-VITE_API_BASE_URL=http://localhost:5678/api
+VITE_API_BASE_URL=http://localhost:5679/api
 
 # 或者使用实际的生产域名
 # VITE_API_BASE_URL=https://your-domain.com/api
@@ -1342,7 +1342,7 @@ export default request
 ```bash
 # 终端 1: 启动后端服务器（Node.js）
 cd e:\switcher
-node server.js  # 或者你的后端启动命令，运行在 5678 端口
+node server.js  # 或者你的后端启动命令，运行在 5679 端口
 
 # 终端 2: 启动前端开发服务器（Vite）
 cd e:\switcher\frontend  # 假设前端项目在 frontend 目录
@@ -1351,7 +1351,7 @@ npm run dev  # 运行在 5173 端口
 
 **访问方式**：
 - 打开浏览器访问 `http://localhost:5173`
-- 前端页面会通过 Vite 代理自动转发 API 请求到后端 `localhost:5678`
+- 前端页面会通过 Vite 代理自动转发 API 请求到后端 `localhost:5679`
 
 **调试说明**：
 - 前端修改代码后，Vite 会自动热更新
@@ -1385,7 +1385,7 @@ cp -r dist/* ../public/
 # 3. 后端配置静态文件服务
 # Node.js 使用 express.static('public') 提供静态文件服务
 
-# 4. 访问 http://localhost:5678 即可
+# 4. 访问 http://localhost:5679 即可
 ```
 
 **推荐使用方式 2**，这样只需要运行一个服务器，配置更简单。
@@ -1706,7 +1706,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:5678',
+        target: 'http://localhost:5679',
         changeOrigin: true
       }
     }
@@ -1718,7 +1718,7 @@ export default defineConfig({
 
 **.env.development**:
 ```env
-VITE_API_BASE_URL=http://localhost:5678/api
+VITE_API_BASE_URL=http://localhost:5679/api
 VITE_APP_TITLE=Claude Proxy Switcher
 ```
 
@@ -1859,7 +1859,7 @@ npm run preview
 server: {
   proxy: {
     '/api': {
-      target: 'http://localhost:5678',
+      target: 'http://localhost:5679',
       changeOrigin: true
     }
   }

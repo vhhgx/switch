@@ -71,6 +71,7 @@
             @toggle="handleToggle"
             @test="handleTest"
             @refresh-balance="handleRefreshBalance"
+            @checkin="handleCheckin"
           />
         </div>
       </div>
@@ -145,6 +146,15 @@ async function handleRefreshAllBalances() {
     alert('所有余额刷新成功')
   } catch (error) {
     alert(`刷新失败: ${error.message}`)
+  }
+}
+
+async function handleCheckin(id) {
+  try {
+    await userStore.checkIn(id)
+    alert('签到成功')
+  } catch (error) {
+    alert(`签到失败: ${error.message}`)
   }
 }
 
