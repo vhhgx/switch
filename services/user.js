@@ -19,6 +19,7 @@ const getUserSelf = async (baseUrl, token, userId) => {
         "New-Api-User": userId,
       },
       timeout: 10000,
+      proxy: false, // 禁用代理，直接连接
     });
 
     return {
@@ -56,9 +57,10 @@ const userCheckIn = async (baseUrl, token, userId) => {
         "New-Api-User": userId,
       },
       timeout: 10000,
+      proxy: false, // 禁用代理，直接连接
     });
 
-    console.log("后端签到", response);
+    // console.log("后端签到", response);
 
     return {
       success: true,

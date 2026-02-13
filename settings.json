@@ -31,5 +31,9 @@
       "exchangeRate": 1
     }
   ],
-  "envVariables": {}
+  "envVariables": {},
+  "autoRefresh": true,
+  "refreshInterval": 3,
+  "maxLogs": 100,
+  "autoDisable": false
 }

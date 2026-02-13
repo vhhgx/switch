@@ -159,6 +159,19 @@ app.use(async (ctx) => {
     return;
   }
 
+  // 🔧 特殊处理：count_tokens 接口直接返回默认响应（不请求中转站）
+  // 大部分中转站不支持此接口，直接返回避免无意义的网络请求
+  if (ctx.path.includes("count_tokens")) {
+    console.log(`ℹ️ 拦截 count_tokens 请求，直接返回默认响应（不请求中转站）`);
+    ctx.status = 200;
+    ctx.set("Content-Type", "application/json");
+    ctx.body = {
+      input_tokens: 0,
+      output_tokens: 0,
+    };
+    return;
+  }
+
   const providers = getProviders().filter((p) => p.enabled);
   if (providers.length === 0) {
     ctx.status = 503;
@@ -173,6 +186,7 @@ app.use(async (ctx) => {
 
   // 📊 记录请求开始时间
   const startTime = Date.now();
+  const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   let logEntry = {
     id: Date.now(),
     timestamp: new Date().toISOString(),
@@ -195,7 +209,7 @@ app.use(async (ctx) => {
 
     try {
       console.log(
-        `[${new Date().toLocaleTimeString()}] 尝试: [${provider.name}] -> ${targetUrl}`,
+        `[${new Date().toLocaleTimeString()}] [请求${requestId.substr(-6)}] 尝试: [${provider.name}] -> ${targetUrl}`,
       );
 
       const response = await axios({
