@@ -21,7 +21,7 @@ const requestLogs = [];
 const MAX_LOGS = 100;
 
 // ⚠️ 必须最先注册 bodyParser，否则 POST 请求读不到 body
-app.use(bodyParser());
+app.use(bodyParser({ jsonLimit: '10mb' }));
 
 // --- 配置文件管理 ---
 const getProviders = () => {
