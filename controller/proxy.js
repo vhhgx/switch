@@ -1,6 +1,8 @@
 import * as providerService from '../services/provider.js'
 import * as logService from '../services/log.js'
 import * as proxyService from '../services/proxy.js'
+import { scheduleBalanceCheck } from '../services/balance.js'
+import { c, ts, providerTag, statusBadge, ms } from '../utils/logger.js'
 
 const handleProxyRequest = async (ctx) => {
   const providers = providerService.getProviders().filter((p) => p.enabled)
@@ -35,7 +37,7 @@ const handleProxyRequest = async (ctx) => {
 
   for (const provider of providers) {
     try {
-      const response = await proxyService.forwardRequest(provider, ctx)
+      const { response, actualModel } = await proxyService.forwardRequest(provider, ctx)
 
       const isErrorStatus = [401, 402, 404, 429].includes(response.status)
 
@@ -46,10 +48,9 @@ const handleProxyRequest = async (ctx) => {
           response.status === 404 ? 'URL 路径错误' :
           '请求过于频繁'
 
-        console.warn(`⚠️ [${provider.name}] 返回 ${response.status} (${errorMsg})`)
+        console.log(`${ts()}  ${c.yellow}✗${c.r}  ${providerTag(provider.name, c.yellow)}  ${statusBadge(response.status)}  ${c.yellow}${errorMsg}${c.r}  ${c.gray}→ 切换...${c.r}`)
 
         if (providers.length > 1) {
-          console.log(`   ↻ 正在切换到下一个中转站...`)
           continue
         } else {
           let errorBody
@@ -77,12 +78,10 @@ const handleProxyRequest = async (ctx) => {
           logEntry.provider = provider.name
           logEntry.duration = Date.now() - startTime
           logEntry.success = false
-          if (ctx.request.body && ctx.request.body.model) {
-            logEntry.model = ctx.request.body.model
-          }
+          logEntry.model = actualModel || ctx.request.body?.model || null
           logService.addLog(logEntry)
 
-          console.error(`   ✗ 没有其他可用中转站，请求失败`)
+          console.log(`${ts()}  ${c.red}✗${c.r}  ${providerTag(provider.name, c.red)}  ${statusBadge(response.status)}  ${c.red}${errorMsg}${c.r}`)
           return
         }
       }
@@ -111,10 +110,7 @@ const handleProxyRequest = async (ctx) => {
 
         // 监听 stream 错误
         originalStream.on('error', (err) => {
-          console.error(`❌ [${provider.name}] Stream 传输中断: ${err.message}`)
-          console.error(`   错误代码: ${err.code || 'UNKNOWN'}`)
-          console.error(`   提示: 数据已部分传输，无法切换到其他中转站`)
-          console.error(`   建议: 1) 检查网络连接 2) 尝试更换中转站 3) 增加超时时间`)
+          console.log(`${ts()}  ${c.red}✗${c.r}  ${providerTag(provider.name, c.red)}  ${c.red}Stream 中断${c.r}  ${c.gray}${err.code || err.message}  数据已部分传输，无法切换${c.r}`)
 
           // 记录失败日志
           logEntry.status = 502
@@ -127,9 +123,7 @@ const handleProxyRequest = async (ctx) => {
           logService.addLog(logEntry)
         })
 
-        originalStream.on('end', () => {
-          console.log(`✅ [${provider.name}] Stream 传输完成`)
-        })
+        originalStream.on('end', () => {}) // 传输完成由下方成功行统一打印
       }
 
       ctx.body = response.data
@@ -147,13 +141,20 @@ const handleProxyRequest = async (ctx) => {
         logEntry.tokenOutput = parseInt(response.headers['anthropic-ratelimit-tokens-output']) || 0
       }
 
-      if (ctx.request.body && ctx.request.body.model) {
-        logEntry.model = ctx.request.body.model
-      }
+      logEntry.model = actualModel || ctx.request.body?.model || null
 
       logService.addLog(logEntry)
 
-      console.log(`✅ [${provider.name}] 请求成功 (${response.status})`)
+      // 异步余额检查（fire-and-forget，冷却期内最多触发一次，不阻塞响应）
+      scheduleBalanceCheck(provider)
+
+      const origModel = ctx.request.body?.model
+      const modelLabel = !actualModel
+        ? c.gray + '-' + c.r
+        : origModel && origModel !== actualModel
+          ? `${c.dim}${origModel}${c.r} ${c.gray}→${c.r} ${c.cyan}${actualModel}${c.r}`
+          : `${c.cyan}${actualModel}${c.r}`
+      console.log(`${ts()}  ${c.green}✓${c.r}  ${providerTag(provider.name, c.green)}  ${statusBadge(response.status)}  ${modelLabel}  ${ms(Date.now() - startTime)}`)
       return
     } catch (err) {
       const errorDetails = {
@@ -162,32 +163,19 @@ const handleProxyRequest = async (ctx) => {
         status: err.response?.status
       }
 
-      console.error(`❌ [${provider.name}] 连接失败: ${err.message}`)
-
-      // 详细的错误原因分析
-      if (err.code === 'ECONNABORTED') {
-        console.error(`   原因: 请求超时 (${err.message})`)
-        console.error(`   建议: 检查中转站是否被墙或 URL 是否正确`)
-      } else if (err.code === 'ECONNRESET') {
-        console.error(`   原因: 连接被重置`)
-        console.error(`   建议: 1) 网络不稳定 2) 服务器过载 3) 防火墙拦截`)
-      } else if (err.code === 'ENOTFOUND') {
-        console.error(`   原因: 域名解析失败`)
-        console.error(`   建议: 检查 DNS 设置或域名是否正确`)
-      } else if (err.code === 'ETIMEDOUT') {
-        console.error(`   原因: 连接超时`)
-        console.error(`   建议: 检查网络连接或增加超时时间`)
-      } else {
-        console.error(`   错误代码: ${err.code || 'UNKNOWN'}`)
-      }
-
-      // 如果还有其他 provider，尝试切换
-      const currentIndex = providers.indexOf(provider)
-      if (currentIndex < providers.length - 1) {
-        console.log(`   ↻ 正在切换到下一个中转站...`)
-      }
+      const errHint =
+        err.code === 'ECONNABORTED' ? '请求超时' :
+        err.code === 'ECONNRESET'   ? '连接被重置' :
+        err.code === 'ENOTFOUND'    ? '域名解析失败' :
+        err.code === 'ETIMEDOUT'    ? '连接超时' :
+        err.message
+      const isLast = providers.indexOf(provider) >= providers.length - 1
+      const suffix = isLast ? '' : `  ${c.gray}→ 切换...${c.r}`
+      console.log(`${ts()}  ${c.red}✗${c.r}  ${providerTag(provider.name, c.red)}  ${c.red}${err.code || 'ERR'}${c.r}  ${c.gray}${errHint}${c.r}${suffix}`)
     }
   }
+
+  console.log(`${ts()}  ${c.red}✗${c.r}  ${c.red}${c.bold}502${c.r}  ${c.red}所有中转站均失败${c.r}`)
 
   ctx.status = 502
   ctx.body = { error: { type: 'api_error', message: '所有中转站均请求失败' } }
@@ -196,9 +184,7 @@ const handleProxyRequest = async (ctx) => {
   logEntry.provider = '所有中转站'
   logEntry.duration = Date.now() - startTime
   logEntry.success = false
-  if (ctx.request.body && ctx.request.body.model) {
-    logEntry.model = ctx.request.body.model
-  }
+  logEntry.model = ctx.request.body?.model || null
   logService.addLog(logEntry)
 }
 

@@ -1,6 +1,7 @@
 export default {
   port: process.env.PORT || 5678,
-  maxLogs: 100,
-  requestTimeout: 180000, // 增加到 120 秒，适应 Claude API 流式响应
-  streamTimeout: 180000 // Stream 传输超时：3 分钟
+  maxLogs: 1000,        // 内存缓存条数上限
+  maxLogFile: 10000,    // 文件行数上限，超出后自动裁剪到 maxLogs 条
+  requestTimeout: 180000,
+  streamTimeout: 180000
 }

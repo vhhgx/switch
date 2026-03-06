@@ -5,7 +5,7 @@ const getAll = async (ctx) => {
 }
 
 const clear = async (ctx) => {
-  logService.clearLogs()
+  await logService.clearLogs()
   ctx.body = { success: true }
 }
 

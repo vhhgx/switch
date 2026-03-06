@@ -1,5 +1,6 @@
 import axios from 'axios'
 import config from '../config/index.js'
+import { c, ts, providerTag } from '../utils/logger.js'
 
 function buildTargetUrl(baseUrl, requestPath) {
   let cleanBase = baseUrl.trim().replace(/\/+$/, '')
@@ -20,14 +21,26 @@ function buildTargetUrl(baseUrl, requestPath) {
 async function forwardRequest(provider, ctx) {
   const targetUrl = buildTargetUrl(provider.baseUrl, ctx.path)
 
-  console.log(
-    `[${new Date().toLocaleTimeString()}] 尝试: [${provider.name}] -> ${targetUrl}`
-  )
+  console.log(`${ts()}  ${c.gray}→${c.r}  ${providerTag(provider.name)}  ${c.gray}${ctx.method} ${ctx.path}${c.r}`)
+
+  // 应用模型映射：若该中转站配置了 modelMapping，替换请求体中的 model 字段
+  let requestBody = ctx.request.body
+  let actualModel = requestBody?.model || null
+  if (
+    requestBody?.model &&
+    provider.modelMapping &&
+    provider.modelMapping[requestBody.model]
+  ) {
+    const originalModel = requestBody.model
+    actualModel = provider.modelMapping[requestBody.model]
+    requestBody = { ...requestBody, model: actualModel }
+    console.log(`      ${c.cyan}⇄${c.r}  ${c.dim}${originalModel}${c.r}  ${c.gray}→${c.r}  ${c.white}${actualModel}${c.r}`)
+  }
 
   const response = await axios({
     method: ctx.method,
     url: targetUrl,
-    data: ctx.request.body,
+    data: requestBody,
     headers: {
       ...ctx.headers,
       host: new URL(targetUrl).host,
@@ -44,14 +57,12 @@ async function forwardRequest(provider, ctx) {
   // 为 stream 添加错误处理
   if (response.data && typeof response.data.on === 'function') {
     response.data.on('error', (err) => {
-      console.error(`❌ [${provider.name}] Stream 传输错误: ${err.message}`)
-      if (err.code === 'ECONNRESET') {
-        console.error(`   (原因: 连接被远程服务器重置，可能是网络不稳定或服务器过载)`)
-      }
+      const hint = err.code === 'ECONNRESET' ? '连接被远程服务器重置' : err.message
+      console.error(`${ts()}  ${c.red}✗${c.r}  ${providerTag(provider.name, c.red)}  ${c.red}Stream 中断${c.r}  ${c.gray}${hint}${c.r}`)
     })
   }
 
-  return response
+  return { response, actualModel }
 }
 
 export { buildTargetUrl, forwardRequest }

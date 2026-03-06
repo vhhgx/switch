@@ -7,7 +7,9 @@
   "provider": {
     "retryAttempts": 3,
     "requestTimeout": 60,
-    "autoDisable": false
+    "autoDisable": false,
+    "balanceThreshold": 30,
+    "balanceCheckInterval": 10
   },
   "notification": {
     "notifyOnError": true,

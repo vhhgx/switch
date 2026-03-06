@@ -3,11 +3,16 @@ import bodyParser from 'koa-bodyparser'
 import serve from 'koa-static'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import figlet from 'figlet'
+import tinygradient from 'tinygradient'
+import chalk from 'chalk'
 
 import config from './config/index.js'
 import routes from './routes/index.js'
 import { getProviders } from './services/provider.js'
 import { getSettings } from './services/settings.js'
+import { initLogs } from './services/log.js'
+import { c, ts, statusBadge, ms } from './utils/logger.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -34,12 +39,17 @@ app.use(async (ctx, next) => {
 app.use(bodyParser())
 app.use(serve(path.join(__dirname, 'public')))
 
-// 自定义日志中间件
+// 管理 API 请求日志（/v1/ 代理请求由 controller/proxy.js 单独处理，此处跳过）
 app.use(async (ctx, next) => {
-  const start = new Date()
+  const start = Date.now()
   await next()
-  const ms = new Date() - start
-  console.log(`${ctx.method} ${ctx.url} - ${ms}ms`)
+  if (ctx.path.startsWith('/v1/')) return
+  const duration = Date.now() - start
+  const ok = ctx.status < 400
+  const icon = ok ? `${c.gray}·${c.r}` : `${c.red}✗${c.r}`
+  const method = `${c.dim}${ctx.method}${c.r}`
+  const path   = `${c.gray}${ctx.path}${c.r}`
+  console.log(`${ts()}  ${icon}  ${method} ${path}  ${statusBadge(ctx.status)}  ${ms(duration)}`)
 })
 
 // 注册路由
@@ -53,36 +63,43 @@ app.on('error', (err, ctx) => {
 // 初始化配置文件
 async function initializeConfigFiles() {
   try {
-    console.log('正在初始化配置文件...')
-
-    // 初始化 providers.json（如果不存在会自动创建）
     getProviders()
-    console.log('✓ providers.json 已就绪')
-
-    // 初始化 settings.json（如果不存在会自动创建）
     await getSettings()
-    console.log('✓ settings.json 已就绪')
-
-    console.log('配置文件初始化完成\n')
+    await initLogs()
   } catch (error) {
-    console.error('配置文件初始化失败:', error)
+    console.error(`${c.red}✗ 初始化失败: ${error.message}${c.r}`)
     process.exit(1)
   }
 }
 
 // 启动服务器
 async function startServer() {
-  // 先初始化配置文件
   await initializeConfigFiles()
 
-  // 然后启动服务器
   app.listen(config.port, () => {
-    console.log(`
-    代理已启动
-    --------------------------------
-    端口: ${config.port}
-    --------------------------------
-  `)
+    // ASCII art 大字标题（渐变色）
+    const art = figlet.textSync('Proxy', { font: 'ANSI Shadow', horizontalLayout: 'fitted' })
+    const artLines = art.split('\n')
+
+    const gradient = tinygradient([
+      { color: '#ffffff', pos: 0 },    // 顶部颜色
+      { color: '#808080', pos: 0.5 },  // 中间颜色
+      { color: '#202020', pos: 1 }     // 底部颜色
+    ]);
+    const colors = gradient.rgb(Math.max(artLines.length, 2))
+    console.log()
+    artLines.forEach((line, i) => {
+      console.log(chalk.hex(colors[i].toHex())('  ' + line))
+    })
+
+    // 副标题与信息栏
+    console.log()
+    console.log(chalk.bold.white('  Claude Proxy Switcher') + chalk.gray('  —  多账号自动故障转移网关'))
+    console.log(chalk.gray('  ' + '─'.repeat(46)))
+    console.log(chalk.gray('  Port  ') + chalk.white(String(config.port)))
+    console.log(chalk.gray('  URL   ') + chalk.cyan(`http://localhost:${config.port}`))
+    console.log(chalk.gray('  ' + '─'.repeat(46)))
+    console.log()
   })
 }
 

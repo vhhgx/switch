@@ -94,6 +94,16 @@
                 添加
               </button>
               <button
+                class="btn btn-success btn-small"
+                onclick="checkInAll()"
+                id="checkInAllBtn"
+              >
+                <span class="material-symbols-outlined" style="font-size: 14px">
+                  event_available
+                </span>
+                一键签到
+              </button>
+              <button
                 class="btn btn-danger btn-small"
                 onclick="refreshAllBalances()"
               >
@@ -217,13 +227,45 @@
 
               <div class="setting-row">
                 <div class="setting-info">
-                  <label for="autoDisable">自动禁用失败节点</label>
-                  <p class="setting-desc">连续失败3次后自动禁用该中转站</p>
+                  <label for="autoDisable">余额不足自动禁用</label>
+                  <p class="setting-desc">余额低于阈值时自动禁用该中转站并切换下一个</p>
                 </div>
                 <label class="toggle-switch">
-                  <input type="checkbox" id="autoDisable" />
+                  <input type="checkbox" id="autoDisable" onchange="saveProviderSettings()" />
                   <span class="toggle-slider"></span>
                 </label>
+              </div>
+
+              <div class="setting-row" id="balanceThresholdRow">
+                <div class="setting-info">
+                  <label for="balanceThreshold">余额禁用阈值</label>
+                  <p class="setting-desc">低于此金额（按配额模式货币）时自动禁用，0 表示关闭</p>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <input
+                    type="number"
+                    id="balanceThreshold"
+                    min="0"
+                    step="1"
+                    value="0"
+                    onchange="saveProviderSettings()"
+                    style="width:80px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);color:var(--text-primary);font-size:13px;text-align:right;"
+                  />
+                  <span style="color:var(--text-muted);font-size:13px;">元</span>
+                </div>
+              </div>
+
+              <div class="setting-row" id="balanceCheckIntervalRow">
+                <div class="setting-info">
+                  <label for="balanceCheckInterval">余额检查冷却期</label>
+                  <p class="setting-desc">每次代理请求成功后检查余额，同一站点在冷却期内只查一次</p>
+                </div>
+                <select id="balanceCheckInterval" class="setting-select" onchange="saveProviderSettings()">
+                  <option value="5">5 分钟</option>
+                  <option value="10" selected>10 分钟</option>
+                  <option value="30">30 分钟</option>
+                  <option value="60">60 分钟</option>
+                </select>
               </div>
 
               <div class="setting-row">
@@ -999,6 +1041,19 @@
               配额模式请在设置页面设置
             </div>
           </div>
+          <div class="form-group">
+            <label>模型映射
+              <span style="font-size: 12px; font-weight: 400; color: var(--text-muted)">（可选）</span>
+            </label>
+            <div id="editModelMappingList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            <button type="button" class="btn btn-secondary btn-small" onclick="addModelMappingRow()" style="margin-top: 8px; align-self: flex-start;">
+              <span class="material-symbols-outlined" style="font-size: 14px">add</span>
+              添加映射
+            </button>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+              转发到此中转站时，将请求中的模型名替换为目标模型名
+            </div>
+          </div>
           <div class="modal-actions">
             <button
               type="button"
@@ -1165,11 +1220,18 @@
         }
       }
 
+      // 全局缓存，供 openEditModal 按 id 查找完整对象
+      let _cachedProviders = [];
+      // 余额缓存：{ [providerId]: { balance, used, currencySymbol } }
+      // loadProviders() 重绘后从此处还原，避免余额消失
+      let _balanceCache = {};
+
       // Load providers list
       async function loadProviders() {
         try {
           const res = await fetch("/api/providers");
           const providers = await res.json();
+          _cachedProviders = providers;
           const container = document.getElementById("providerList");
 
           // 获取不支持签到的中转站列表
@@ -1321,7 +1383,7 @@
               }
               <div class="action-row">
                 <button class="btn btn-primary btn-small"
-                        onclick="openEditModal(${p.id}, '${p.name.replace(/'/g, "\\'")}', '${p.baseUrl}', '${p.apiKey}', '${p.token || ""}', '${p.userId || ""}', '${p.quotaMethod || "total"}')">
+                        onclick="openEditModal(${p.id})">
                   <span class="material-symbols-outlined" style="font-size: 14px">edit</span>
                   编辑
                 </button>
@@ -1341,6 +1403,24 @@
         `,
             )
             .join("");
+
+          // 重绘后，从缓存还原已获取过的余额数据（避免因 loadProviders 重新渲染导致余额消失）
+          Object.entries(_balanceCache).forEach(([id, cached]) => {
+            const pid = parseInt(id);
+            const balanceContainer = document.getElementById(`balance-container-${pid}`);
+            const balanceElement   = document.getElementById(`balance-${pid}`);
+            const balanceTip       = document.getElementById(`balance-tip-${pid}`);
+            const usedContainer    = document.getElementById(`used-container-${pid}`);
+            const usedValue        = document.getElementById(`used-value-${pid}`);
+            const usedTip          = document.getElementById(`used-tip-${pid}`);
+            if (!balanceContainer || !balanceElement) return;
+            balanceElement.textContent = `${cached.currencySymbol} ${cached.balance}`;
+            if (usedValue) usedValue.textContent = `${cached.currencySymbol} ${cached.used}`;
+            balanceTip.style.display   = "none";
+            if (usedTip) usedTip.style.display = "none";
+            balanceContainer.style.display = "block";
+            if (usedContainer) usedContainer.style.display = "block";
+          });
         } catch (err) {
           console.error("加载中转站失败:", err);
         }
@@ -1495,24 +1575,66 @@
         }
       }
 
-      async function openEditModal(
-        id,
-        name,
-        baseUrl,
-        apiKey,
-        token,
-        userId,
-        quotaMethod,
-      ) {
+      async function openEditModal(id) {
+        const p = _cachedProviders.find((x) => x.id === id);
+        if (!p) return;
         currentEditId = id;
         await loadQuotaMethodOptions();
-        document.getElementById("editName").value = name;
-        document.getElementById("editUrl").value = baseUrl;
-        document.getElementById("editKey").value = apiKey;
-        document.getElementById("editToken").value = token || "";
-        document.getElementById("editUserId").value = userId || "";
-        document.getElementById("editQuotaMethod").value = quotaMethod || "";
+        document.getElementById("editName").value = p.name;
+        document.getElementById("editUrl").value = p.baseUrl;
+        document.getElementById("editKey").value = p.apiKey;
+        document.getElementById("editToken").value = p.token || "";
+        document.getElementById("editUserId").value = p.userId || "";
+        document.getElementById("editQuotaMethod").value = p.quotaMethod || "";
+        // 填充模型映射；若尚未配置则预填三行默认占位
+        const list = document.getElementById("editModelMappingList");
+        list.innerHTML = "";
+        const mapping = p.modelMapping;
+        if (mapping && Object.keys(mapping).length > 0) {
+          Object.entries(mapping).forEach(([src, dst]) =>
+            addModelMappingRow(src, dst),
+          );
+        } else {
+          const DEFAULT_MAPPINGS = [
+            "claude-sonnet-4-5",
+            "claude-opus-4-5",
+            "claude-haiku-4-5",
+          ];
+          DEFAULT_MAPPINGS.forEach((src) => addModelMappingRow(src, ""));
+        }
         document.getElementById("editModal").classList.add("active");
+      }
+
+      function addModelMappingRow(src = "", dst = "") {
+        const list = document.getElementById("editModelMappingList");
+        const row = document.createElement("div");
+        row.style.cssText =
+          "display:flex;gap:6px;align-items:center;";
+        row.innerHTML = `
+          <input type="text" placeholder="原始模型名（如 claude-opus-4-5）"
+            value="${src.replace(/"/g, "&quot;")}"
+            style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);color:var(--text-primary);font-size:13px;" />
+          <span style="color:var(--text-muted);flex-shrink:0;">→</span>
+          <input type="text" placeholder="目标模型名（如 claude-sonnet-3-7）"
+            value="${dst.replace(/"/g, "&quot;")}"
+            style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);color:var(--text-primary);font-size:13px;" />
+          <button type="button" onclick="this.parentElement.remove()"
+            style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;flex-shrink:0;" title="删除">
+            <span class="material-symbols-outlined" style="font-size:18px;">close</span>
+          </button>`;
+        list.appendChild(row);
+      }
+
+      function getModelMappingFromUI() {
+        const list = document.getElementById("editModelMappingList");
+        const mapping = {};
+        list.querySelectorAll("div").forEach((row) => {
+          const inputs = row.querySelectorAll("input");
+          const src = inputs[0]?.value.trim();
+          const dst = inputs[1]?.value.trim();
+          if (src && dst) mapping[src] = dst;
+        });
+        return mapping;
       }
 
       function closeEditModal() {
@@ -1529,6 +1651,7 @@
         const token = document.getElementById("editToken").value.trim();
         const userId = document.getElementById("editUserId").value.trim();
         const quotaMethod = document.getElementById("editQuotaMethod").value;
+        const modelMapping = getModelMappingFromUI();
 
         if (!name || !baseUrl || !apiKey) {
           alert("请填写完整信息");
@@ -1546,6 +1669,7 @@
               token,
               userId,
               quotaMethod,
+              modelMapping,
             }),
           });
 
@@ -1683,6 +1807,127 @@
         localStorage.setItem(`quota-method-${providerId}`, method);
       }
 
+      // 一键签到所有中转站
+      async function checkInAll() {
+        const btn = document.getElementById("checkInAllBtn");
+
+        try {
+          const res = await fetch("/api/providers");
+          const providers = await res.json();
+
+          const targets = providers.filter((p) => p.token && p.enabled);
+          if (targets.length === 0) {
+            alert("没有已启用且配置了令牌的中转站，无法签到");
+            return;
+          }
+
+          // 禁用按钮，防止重复点击
+          btn.disabled = true;
+          btn.innerHTML = `
+            <span class="material-symbols-outlined" style="font-size: 14px">sync</span>
+            签到中...
+          `;
+
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const todayTimestamp = today.getTime();
+          const checkedInData = JSON.parse(localStorage.getItem("checkedInProviders") || "[]");
+          const noCheckinData = JSON.parse(localStorage.getItem("noCheckinProviders") || "[]");
+
+          const results = { success: [], alreadyDone: [], failed: [], unsupported: [] };
+
+          for (const provider of targets) {
+            // 跳过今天已签到的
+            const alreadyToday = checkedInData.some((item) => {
+              if (item.id !== provider.id) return false;
+              const d = new Date(item.checkedInAt);
+              d.setHours(0, 0, 0, 0);
+              return d.getTime() === todayTimestamp;
+            });
+            if (alreadyToday) {
+              results.alreadyDone.push(provider.name);
+              continue;
+            }
+
+            // 跳过已知不支持签到的
+            if (noCheckinData.includes(provider.id)) {
+              results.unsupported.push(provider.name);
+              continue;
+            }
+
+            try {
+              const response = await fetch("/api/user/checkin", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  baseUrl: provider.baseUrl,
+                  token: provider.token,
+                  userId: provider.userId,
+                }),
+              });
+
+              if (response.status === 404) {
+                if (!noCheckinData.includes(provider.id)) {
+                  noCheckinData.push(provider.id);
+                }
+                results.unsupported.push(provider.name);
+                continue;
+              }
+
+              const data = await response.json().catch(() => ({}));
+
+              if (response.ok) {
+                const message = data.message || "";
+                const isAlready = message.includes("已签到");
+
+                // 记录签到状态
+                const idx = checkedInData.findIndex((item) => item.id === provider.id);
+                if (idx >= 0) checkedInData.splice(idx, 1);
+                checkedInData.push({ id: provider.id, checkedInAt: Date.now() });
+
+                if (isAlready) {
+                  results.alreadyDone.push(provider.name);
+                } else {
+                  results.success.push(provider.name);
+                }
+              } else {
+                results.failed.push(`${provider.name}（${data.error?.message || response.status}）`);
+              }
+            } catch (err) {
+              results.failed.push(`${provider.name}（${err.message}）`);
+            }
+          }
+
+          // 持久化签到记录
+          localStorage.setItem("checkedInProviders", JSON.stringify(checkedInData));
+          localStorage.setItem("noCheckinProviders", JSON.stringify(noCheckinData));
+
+          // 构建结果摘要
+          const lines = [];
+          if (results.success.length)     lines.push(`✅ 签到成功（${results.success.length}）：${results.success.join("、")}`);
+          if (results.alreadyDone.length) lines.push(`☑️ 今日已签到（${results.alreadyDone.length}）：${results.alreadyDone.join("、")}`);
+          if (results.unsupported.length) lines.push(`⭕ 不支持签到（${results.unsupported.length}）：${results.unsupported.join("、")}`);
+          if (results.failed.length)      lines.push(`❌ 签到失败（${results.failed.length}）：${results.failed.join("、")}`);
+          alert(lines.join("\n\n"));
+
+          // 刷新列表更新按钮状态，再刷新成功站点的余额
+          await loadProviders();
+          for (const provider of targets) {
+            if (results.success.some((name) => name === provider.name)) {
+              await refreshBalance(provider.id);
+            }
+          }
+        } catch (err) {
+          alert("一键签到异常：" + err.message);
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = `
+            <span class="material-symbols-outlined" style="font-size: 14px">event_available</span>
+            一键签到
+          `;
+        }
+      }
+
       // 刷新所有中转站余额
       async function refreshAllBalances() {
         try {
@@ -1812,6 +2057,13 @@
 
             // 获取币种符号
             const currencySymbol = quotaMode.currency === "CNY" ? "¥" : "$";
+
+            // 存入余额缓存，供 loadProviders() 重绘后还原
+            _balanceCache[providerId] = {
+              balance: balance.toFixed(2),
+              used: usedQuota.toFixed(2),
+              currencySymbol,
+            };
 
             // 更新余额
             balanceElement.textContent = `${currencySymbol} ${balance.toFixed(2)}`;
@@ -2580,6 +2832,18 @@
         }
       }
 
+      async function saveProviderSettings() {
+        await saveSettings({
+          provider: {
+            retryAttempts: parseInt(document.getElementById("retryAttempts").value),
+            requestTimeout: parseInt(document.getElementById("requestTimeout").value),
+            autoDisable: document.getElementById("autoDisable").checked,
+            balanceThreshold: parseFloat(document.getElementById("balanceThreshold").value) || 0,
+            balanceCheckInterval: parseInt(document.getElementById("balanceCheckInterval").value),
+          },
+        });
+      }
+
       async function loadSettings() {
         try {
           const response = await fetch("/api/settings");
@@ -2603,6 +2867,10 @@
             allSettings.provider.requestTimeout;
           document.getElementById("autoDisable").checked =
             allSettings.provider.autoDisable;
+          document.getElementById("balanceThreshold").value =
+            allSettings.provider.balanceThreshold ?? 0;
+          document.getElementById("balanceCheckInterval").value =
+            allSettings.provider.balanceCheckInterval ?? 10;
 
           // 应用通知设置
           document.getElementById("notifyOnError").checked =

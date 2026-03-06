@@ -14,11 +14,13 @@ const DEFAULT_SETTINGS = {
     refreshInterval: 5,
     maxLogs: 100
   },
-  provider: {
-    retryAttempts: 3,
-    requestTimeout: 60,
-    autoDisable: false
-  },
+    provider: {
+      retryAttempts: 3,
+      requestTimeout: 60,
+      autoDisable: false,
+      balanceThreshold: 0,      // 低于此值自动禁用（0 = 关闭）单位：配额模式货币
+      balanceCheckInterval: 10  // 余额检查冷却期（分钟）
+    },
   notification: {
     notifyOnError: true,
     notifyOnProviderDown: true,
