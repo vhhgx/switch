@@ -1,5 +1,6 @@
 import axios from 'axios'
 import config from '../config/index.js'
+import { getSettings } from './settings.js'
 import { c, ts, providerTag } from '../utils/logger.js'
 
 function buildTargetUrl(baseUrl, requestPath) {
@@ -21,28 +22,38 @@ function buildTargetUrl(baseUrl, requestPath) {
 async function forwardRequest(provider, ctx) {
   const targetUrl = buildTargetUrl(provider.baseUrl, ctx.path)
 
-  console.log(`${ts()}  ${c.gray}→${c.r}  ${providerTag(provider.name)}  ${c.gray}${ctx.method} ${ctx.path}${c.r}`)
-
-  // 应用模型映射：若该中转站配置了 modelMapping，替换请求体中的 model 字段
+  // 应用模型映射：静默处理，不再输出多余日志
   let requestBody = ctx.request.body
   let actualModel = requestBody?.model || null
-  if (
-    requestBody?.model &&
-    provider.modelMapping &&
-    provider.modelMapping[requestBody.model]
-  ) {
+
+  if (requestBody?.model) {
     const originalModel = requestBody.model
-    actualModel = provider.modelMapping[requestBody.model]
-    requestBody = { ...requestBody, model: actualModel }
-    console.log(`      ${c.cyan}⇄${c.r}  ${c.dim}${originalModel}${c.r}  ${c.gray}→${c.r}  ${c.white}${actualModel}${c.r}`)
+    // 优先级 1: 中转站私有映射
+    if (provider.modelMapping && provider.modelMapping[originalModel]) {
+      actualModel = provider.modelMapping[originalModel]
+    } else {
+      // 优先级 2: 全局默认映射
+      const settings = await getSettings()
+      if (settings.defaultModelMapping && settings.defaultModelMapping[originalModel]) {
+        actualModel = settings.defaultModelMapping[originalModel]
+      }
+    }
+
+    if (actualModel !== originalModel) {
+      requestBody = { ...requestBody, model: actualModel }
+    }
   }
+
+  const headers = { ...ctx.headers }
+  delete headers['content-length']
+  delete headers['host']
 
   const response = await axios({
     method: ctx.method,
     url: targetUrl,
     data: requestBody,
     headers: {
-      ...ctx.headers,
+      ...headers,
       host: new URL(targetUrl).host,
       'x-api-key': provider.apiKey,
       'anthropic-version': ctx.headers['anthropic-version'] || '2023-06-01',

@@ -112,6 +112,15 @@
                 </span>
                 刷新余额
               </button>
+              <button
+                class="btn btn-secondary btn-small"
+                onclick="openGlobalMappingModal()"
+              >
+                <span class="material-symbols-outlined" style="font-size: 14px">
+                  swap_calls
+                </span>
+                模型映射
+              </button>
             </div>
           </div>
 
@@ -228,10 +237,16 @@
               <div class="setting-row">
                 <div class="setting-info">
                   <label for="autoDisable">余额不足自动禁用</label>
-                  <p class="setting-desc">余额低于阈值时自动禁用该中转站并切换下一个</p>
+                  <p class="setting-desc">
+                    余额低于阈值时自动禁用该中转站并切换下一个
+                  </p>
                 </div>
                 <label class="toggle-switch">
-                  <input type="checkbox" id="autoDisable" onchange="saveProviderSettings()" />
+                  <input
+                    type="checkbox"
+                    id="autoDisable"
+                    onchange="saveProviderSettings()"
+                  />
                   <span class="toggle-slider"></span>
                 </label>
               </div>
@@ -239,9 +254,11 @@
               <div class="setting-row" id="balanceThresholdRow">
                 <div class="setting-info">
                   <label for="balanceThreshold">余额禁用阈值</label>
-                  <p class="setting-desc">低于此金额（按配额模式货币）时自动禁用，0 表示关闭</p>
+                  <p class="setting-desc">
+                    低于此金额（按配额模式货币）时自动禁用，0 表示关闭
+                  </p>
                 </div>
-                <div style="display:flex;align-items:center;gap:6px;">
+                <div style="display: flex; align-items: center; gap: 6px">
                   <input
                     type="number"
                     id="balanceThreshold"
@@ -249,18 +266,35 @@
                     step="1"
                     value="0"
                     onchange="saveProviderSettings()"
-                    style="width:80px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);color:var(--text-primary);font-size:13px;text-align:right;"
+                    style="
+                      width: 80px;
+                      padding: 6px 10px;
+                      border: 1px solid var(--border);
+                      border-radius: 8px;
+                      background: var(--input-bg);
+                      color: var(--text-primary);
+                      font-size: 13px;
+                      text-align: right;
+                    "
                   />
-                  <span style="color:var(--text-muted);font-size:13px;">元</span>
+                  <span style="color: var(--text-muted); font-size: 13px"
+                    >元</span
+                  >
                 </div>
               </div>
 
               <div class="setting-row" id="balanceCheckIntervalRow">
                 <div class="setting-info">
                   <label for="balanceCheckInterval">余额检查冷却期</label>
-                  <p class="setting-desc">每次代理请求成功后检查余额，同一站点在冷却期内只查一次</p>
+                  <p class="setting-desc">
+                    每次代理请求成功后检查余额，同一站点在冷却期内只查一次
+                  </p>
                 </div>
-                <select id="balanceCheckInterval" class="setting-select" onchange="saveProviderSettings()">
+                <select
+                  id="balanceCheckInterval"
+                  class="setting-select"
+                  onchange="saveProviderSettings()"
+                >
                   <option value="5">5 分钟</option>
                   <option value="10" selected>10 分钟</option>
                   <option value="30">30 分钟</option>
@@ -571,6 +605,43 @@
             </div>
 
             <!-- Danger Zone Section -->
+            <div class="settings-section">
+              <div class="settings-section-title">
+                <span class="material-symbols-outlined">psychology</span>
+                <h3>模型库管理</h3>
+              </div>
+              <div class="setting-row">
+                <div class="setting-info">
+                  <label>全局模型库</label>
+                  <p class="setting-desc">管理可供选择的模型名称，添加后可在映射中使用</p>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center">
+                  <button class="btn btn-primary btn-small" onclick="addModelOption()">
+                    <span class="material-symbols-outlined" style="font-size: 14px">add</span>
+                    添加模型
+                  </button>
+                </div>
+              </div>
+              <div id="modelOptionsList" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; background: var(--input-bg); border-radius: 8px; margin-top: 8px;">
+                <!-- 模型标签将显示在这里 -->
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <div class="settings-section-title">
+                <span class="material-symbols-outlined">swap_calls</span>
+                <h3>全局默认映射</h3>
+              </div>
+              <p class="setting-desc" style="margin-bottom: 12px;">当中转站未配置私有映射时，将使用此全局默认映射</p>
+              <div id="globalMappingList" style="display: flex; flex-direction: column; gap: 8px;">
+                <!-- 映射行将显示在这里 -->
+              </div>
+              <button class="btn btn-secondary btn-small" onclick="addGlobalMappingRow()" style="margin-top: 12px;">
+                <span class="material-symbols-outlined" style="font-size: 14px">add</span>
+                添加全局映射
+              </button>
+            </div>
+
             <div class="settings-section danger-section">
               <div class="settings-section-title">
                 <span class="material-symbols-outlined">warning</span>
@@ -1042,15 +1113,35 @@
             </div>
           </div>
           <div class="form-group">
-            <label>模型映射
-              <span style="font-size: 12px; font-weight: 400; color: var(--text-muted)">（可选）</span>
+            <label
+              >模型映射
+              <span
+                style="
+                  font-size: 12px;
+                  font-weight: 400;
+                  color: var(--text-muted);
+                "
+                >（可选）</span
+              >
             </label>
-            <div id="editModelMappingList" style="display: flex; flex-direction: column; gap: 8px;"></div>
-            <button type="button" class="btn btn-secondary btn-small" onclick="addModelMappingRow()" style="margin-top: 8px; align-self: flex-start;">
-              <span class="material-symbols-outlined" style="font-size: 14px">add</span>
+            <div
+              id="editModelMappingList"
+              style="display: flex; flex-direction: column; gap: 8px"
+            ></div>
+            <button
+              type="button"
+              class="btn btn-secondary btn-small"
+              onclick="addModelMappingRow()"
+              style="margin-top: 8px; align-self: flex-start"
+            >
+              <span class="material-symbols-outlined" style="font-size: 14px"
+                >add</span
+              >
               添加映射
             </button>
-            <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+            <div
+              style="font-size: 12px; color: var(--text-muted); margin-top: 4px"
+            >
               转发到此中转站时，将请求中的模型名替换为目标模型名
             </div>
           </div>
@@ -1065,6 +1156,55 @@
             <button type="submit" class="btn btn-primary">保存</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="globalMappingModal">
+      <div class="modal" style="max-width: 600px;">
+        <div class="modal-header">
+          <h3>全局模型映射管理</h3>
+          <button class="modal-close" onclick="closeGlobalMappingModal()">
+            <span class="material-symbols-outlined" style="font-size: 24px">close</span>
+          </button>
+        </div>
+        <div class="modal-form">
+          <div class="settings-section" style="margin-top: 0; padding: 0; border: none;">
+            <div class="settings-section-title">
+              <span class="material-symbols-outlined">psychology</span>
+              <h3 style="font-size: 14px;">目标模型库管理</h3>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px;">
+              <input type="text" id="newModelOptionInput" placeholder="输入目标模型名（如 gpt-4o）"
+                style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);color:var(--text-primary);font-size:13px;" />
+              <button class="btn btn-primary btn-small" onclick="addModelOption()">
+                <span class="material-symbols-outlined" style="font-size: 14px">add</span>
+                添加
+              </button>
+            </div>
+            <div id="modelOptionsListModal" style="display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; background: var(--input-bg); border-radius: 8px; max-height: 120px; overflow-y: auto;">
+              <!-- 模型标签 -->
+            </div>
+          </div>
+
+          <div class="settings-section" style="margin-top: 20px; padding: 0; border: none;">
+            <div class="settings-section-title">
+              <span class="material-symbols-outlined">swap_calls</span>
+              <h3 style="font-size: 14px;">默认映射关系</h3>
+            </div>
+            <p class="setting-desc" style="margin-bottom: 12px;">优先级：中转站私有映射 > 全局默认映射</p>
+            <div id="globalMappingListModal" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 4px;">
+              <!-- 映射行 -->
+            </div>
+            <button class="btn btn-secondary btn-small" onclick="addGlobalMappingRowModal()" style="margin-top: 12px;">
+              <span class="material-symbols-outlined" style="font-size: 14px">add</span>
+              添加映射
+            </button>
+          </div>
+
+          <div class="modal-actions" style="margin-top: 24px;">
+            <button class="btn btn-primary" style="width: 100%;" onclick="closeGlobalMappingModal()">完成</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1407,16 +1547,21 @@
           // 重绘后，从缓存还原已获取过的余额数据（避免因 loadProviders 重新渲染导致余额消失）
           Object.entries(_balanceCache).forEach(([id, cached]) => {
             const pid = parseInt(id);
-            const balanceContainer = document.getElementById(`balance-container-${pid}`);
-            const balanceElement   = document.getElementById(`balance-${pid}`);
-            const balanceTip       = document.getElementById(`balance-tip-${pid}`);
-            const usedContainer    = document.getElementById(`used-container-${pid}`);
-            const usedValue        = document.getElementById(`used-value-${pid}`);
-            const usedTip          = document.getElementById(`used-tip-${pid}`);
+            const balanceContainer = document.getElementById(
+              `balance-container-${pid}`,
+            );
+            const balanceElement = document.getElementById(`balance-${pid}`);
+            const balanceTip = document.getElementById(`balance-tip-${pid}`);
+            const usedContainer = document.getElementById(
+              `used-container-${pid}`,
+            );
+            const usedValue = document.getElementById(`used-value-${pid}`);
+            const usedTip = document.getElementById(`used-tip-${pid}`);
             if (!balanceContainer || !balanceElement) return;
             balanceElement.textContent = `${cached.currencySymbol} ${cached.balance}`;
-            if (usedValue) usedValue.textContent = `${cached.currencySymbol} ${cached.used}`;
-            balanceTip.style.display   = "none";
+            if (usedValue)
+              usedValue.textContent = `${cached.currencySymbol} ${cached.used}`;
+            balanceTip.style.display = "none";
             if (usedTip) usedTip.style.display = "none";
             balanceContainer.style.display = "block";
             if (usedContainer) usedContainer.style.display = "block";
@@ -1595,12 +1740,10 @@
             addModelMappingRow(src, dst),
           );
         } else {
-          const DEFAULT_MAPPINGS = [
-            "claude-sonnet-4-5",
-            "claude-opus-4-5",
-            "claude-haiku-4-5",
-          ];
-          DEFAULT_MAPPINGS.forEach((src) => addModelMappingRow(src, ""));
+          // 不再预填硬编码模型，直接从全局映射初始化（如果有）
+          if (allSettings.defaultModelMapping) {
+            Object.keys(allSettings.defaultModelMapping).forEach(src => addModelMappingRow(src, ""));
+          }
         }
         document.getElementById("editModal").classList.add("active");
       }
@@ -1608,14 +1751,20 @@
       function addModelMappingRow(src = "", dst = "") {
         const list = document.getElementById("editModelMappingList");
         const row = document.createElement("div");
-        row.style.cssText =
-          "display:flex;gap:6px;align-items:center;";
+        row.style.cssText = "display:flex;gap:6px;align-items:center;";
+
+        // 生成下拉选项
+        const options = (allSettings.modelOptions || [])
+          .map(opt => `<option value="${opt}" ${opt === src ? 'selected' : ''}>${opt}</option>`)
+          .join('');
+
         row.innerHTML = `
-          <input type="text" placeholder="原始模型名（如 claude-opus-4-5）"
-            value="${src.replace(/"/g, "&quot;")}"
-            style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);color:var(--text-primary);font-size:13px;" />
+          <select style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);color:var(--text-primary);font-size:13px;">
+            <option value="">请选择模型...</option>
+            ${options}
+          </select>
           <span style="color:var(--text-muted);flex-shrink:0;">→</span>
-          <input type="text" placeholder="目标模型名（如 claude-sonnet-3-7）"
+          <input type="text" placeholder="目标模型名（如 gpt-4o）"
             value="${dst.replace(/"/g, "&quot;")}"
             style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);color:var(--text-primary);font-size:13px;" />
           <button type="button" onclick="this.parentElement.remove()"
@@ -1629,9 +1778,10 @@
         const list = document.getElementById("editModelMappingList");
         const mapping = {};
         list.querySelectorAll("div").forEach((row) => {
-          const inputs = row.querySelectorAll("input");
-          const src = inputs[0]?.value.trim();
-          const dst = inputs[1]?.value.trim();
+          const select = row.querySelector("select");
+          const input = row.querySelector("input");
+          const src = select?.value;
+          const dst = input?.value.trim();
           if (src && dst) mapping[src] = dst;
         });
         return mapping;
@@ -1812,113 +1962,67 @@
         const btn = document.getElementById("checkInAllBtn");
 
         try {
-          const res = await fetch("/api/providers");
-          const providers = await res.json();
-
-          const targets = providers.filter((p) => p.token && p.enabled);
-          if (targets.length === 0) {
-            alert("没有已启用且配置了令牌的中转站，无法签到");
-            return;
-          }
-
           // 禁用按钮，防止重复点击
           btn.disabled = true;
+          const originalHTML = btn.innerHTML;
           btn.innerHTML = `
             <span class="material-symbols-outlined" style="font-size: 14px">sync</span>
             签到中...
           `;
 
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const todayTimestamp = today.getTime();
-          const checkedInData = JSON.parse(localStorage.getItem("checkedInProviders") || "[]");
-          const noCheckinData = JSON.parse(localStorage.getItem("noCheckinProviders") || "[]");
+          const response = await fetch("/api/user/checkin/all", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
+          });
 
-          const results = { success: [], alreadyDone: [], failed: [], unsupported: [] };
+          const data = await response.json();
 
-          for (const provider of targets) {
-            // 跳过今天已签到的
-            const alreadyToday = checkedInData.some((item) => {
-              if (item.id !== provider.id) return false;
-              const d = new Date(item.checkedInAt);
-              d.setHours(0, 0, 0, 0);
-              return d.getTime() === todayTimestamp;
-            });
-            if (alreadyToday) {
-              results.alreadyDone.push(provider.name);
-              continue;
-            }
+          if (response.ok && data.success) {
+            const results = data.results;
+            const summary = data.summary;
 
-            // 跳过已知不支持签到的
-            if (noCheckinData.includes(provider.id)) {
-              results.unsupported.push(provider.name);
-              continue;
-            }
+            // 更新本地存储以反映签到状态（用于 UI 按钮禁用）
+            const checkedInData = JSON.parse(localStorage.getItem("checkedInProviders") || "[]");
+            const noCheckinData = JSON.parse(localStorage.getItem("noCheckinProviders") || "[]");
 
-            try {
-              const response = await fetch("/api/user/checkin", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  baseUrl: provider.baseUrl,
-                  token: provider.token,
-                  userId: provider.userId,
-                }),
-              });
-
-              if (response.status === 404) {
-                if (!noCheckinData.includes(provider.id)) {
-                  noCheckinData.push(provider.id);
-                }
-                results.unsupported.push(provider.name);
-                continue;
-              }
-
-              const data = await response.json().catch(() => ({}));
-
-              if (response.ok) {
-                const message = data.message || "";
-                const isAlready = message.includes("已签到");
-
-                // 记录签到状态
-                const idx = checkedInData.findIndex((item) => item.id === provider.id);
+            results.forEach(r => {
+              if (r.success) {
+                // 移除旧记录并添加新记录
+                const idx = checkedInData.findIndex(item => item.id === r.id);
                 if (idx >= 0) checkedInData.splice(idx, 1);
-                checkedInData.push({ id: provider.id, checkedInAt: Date.now() });
-
-                if (isAlready) {
-                  results.alreadyDone.push(provider.name);
-                } else {
-                  results.success.push(provider.name);
-                }
-              } else {
-                results.failed.push(`${provider.name}（${data.error?.message || response.status}）`);
+                checkedInData.push({ id: r.id, checkedInAt: Date.now() });
+              } else if (r.data?.status === 404 || r.message.includes('不支持')) {
+                if (!noCheckinData.includes(r.id)) noCheckinData.push(r.id);
               }
-            } catch (err) {
-              results.failed.push(`${provider.name}（${err.message}）`);
+            });
+
+            localStorage.setItem("checkedInProviders", JSON.stringify(checkedInData));
+            localStorage.setItem("noCheckinProviders", JSON.stringify(noCheckinData));
+
+            // 构建结果摘要
+            const successList = results.filter(r => r.success).map(r => r.name);
+            const failedList = results.filter(r => !r.success).map(r => `${r.name}(${r.message})`);
+
+            let alertMsg = `✅ 批量签到完成\n\n成功：${summary.success} 个\n失败：${summary.failed} 个`;
+            if (successList.length > 0) alertMsg += `\n\n成功列表：${successList.join('、')}`;
+            if (failedList.length > 0) alertMsg += `\n\n失败列表：${failedList.join('、')}`;
+
+            alert(alertMsg);
+
+            // 重新加载列表更新按钮状态
+            await loadProviders();
+
+            // 成功站点的余额刷新（可选，考虑到并发压力，可以只刷新成功的）
+            for (const r of results) {
+              if (r.success) {
+                await refreshBalance(r.id);
+              }
             }
-          }
-
-          // 持久化签到记录
-          localStorage.setItem("checkedInProviders", JSON.stringify(checkedInData));
-          localStorage.setItem("noCheckinProviders", JSON.stringify(noCheckinData));
-
-          // 构建结果摘要
-          const lines = [];
-          if (results.success.length)     lines.push(`✅ 签到成功（${results.success.length}）：${results.success.join("、")}`);
-          if (results.alreadyDone.length) lines.push(`☑️ 今日已签到（${results.alreadyDone.length}）：${results.alreadyDone.join("、")}`);
-          if (results.unsupported.length) lines.push(`⭕ 不支持签到（${results.unsupported.length}）：${results.unsupported.join("、")}`);
-          if (results.failed.length)      lines.push(`❌ 签到失败（${results.failed.length}）：${results.failed.join("、")}`);
-          alert(lines.join("\n\n"));
-
-          // 刷新列表更新按钮状态，再刷新成功站点的余额
-          await loadProviders();
-          for (const provider of targets) {
-            if (results.success.some((name) => name === provider.name)) {
-              await refreshBalance(provider.id);
-            }
+          } else {
+            alert("❌ 一键签到失败: " + (data.error || "未知错误"));
           }
         } catch (err) {
-          alert("一键签到异常：" + err.message);
+          alert("❌ 一键签到异常：" + err.message);
         } finally {
           btn.disabled = false;
           btn.innerHTML = `
@@ -2835,11 +2939,19 @@
       async function saveProviderSettings() {
         await saveSettings({
           provider: {
-            retryAttempts: parseInt(document.getElementById("retryAttempts").value),
-            requestTimeout: parseInt(document.getElementById("requestTimeout").value),
+            retryAttempts: parseInt(
+              document.getElementById("retryAttempts").value,
+            ),
+            requestTimeout: parseInt(
+              document.getElementById("requestTimeout").value,
+            ),
             autoDisable: document.getElementById("autoDisable").checked,
-            balanceThreshold: parseFloat(document.getElementById("balanceThreshold").value) || 0,
-            balanceCheckInterval: parseInt(document.getElementById("balanceCheckInterval").value),
+            balanceThreshold:
+              parseFloat(document.getElementById("balanceThreshold").value) ||
+              0,
+            balanceCheckInterval: parseInt(
+              document.getElementById("balanceCheckInterval").value,
+            ),
           },
         });
       }
@@ -2891,6 +3003,110 @@
         } catch (err) {
           console.error("加载设置失败:", err);
         }
+      }
+
+      async function openGlobalMappingModal() {
+        await loadSettings(); // 确保获取最新设置
+        document.getElementById("globalMappingModal").classList.add("active");
+        renderModelOptionsModal();
+        renderGlobalMappingModal();
+      }
+
+      function closeGlobalMappingModal() {
+        document.getElementById("globalMappingModal").classList.remove("active");
+        loadProviders(); // 刷新列表，以防在弹窗中修改了模型名
+      }
+
+      function renderModelOptionsModal() {
+        const container = document.getElementById('modelOptionsListModal');
+        const options = allSettings.modelOptions || [];
+        container.innerHTML = options.map(opt => `
+          <div class="model-tag" style="display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--card-bg);border:1px solid var(--border);border-radius:16px;font-size:12px;">
+            <span>${opt}</span>
+            <span class="material-symbols-outlined" onclick="deleteModelOptionModal('${opt}')" style="font-size:14px;cursor:pointer;opacity:0.6;">close</span>
+          </div>
+        `).join('');
+      }
+
+      async function addModelOption() {
+        const input = document.getElementById("newModelOptionInput");
+        const name = input.value.trim();
+        if (!name) return;
+        const options = [...(allSettings.modelOptions || [])];
+        if (options.includes(name)) return alert("模型已存在");
+        options.push(name);
+        await saveSettings({ modelOptions: options });
+        input.value = "";
+        renderModelOptionsModal();
+      }
+
+      async function deleteModelOptionModal(name) {
+        if (!confirm(`确定要从模型库中删除 "${name}" 吗？`)) return;
+        const options = (allSettings.modelOptions || []).filter(o => o !== name);
+        await saveSettings({ modelOptions: options });
+        renderModelOptionsModal();
+        renderGlobalMappingModal(); // 删除模型后同步更新映射列表下拉框
+      }
+
+      function renderGlobalMappingModal() {
+        const container = document.getElementById('globalMappingListModal');
+        const mapping = allSettings.defaultModelMapping || {};
+        container.innerHTML = '';
+        Object.entries(mapping).forEach(([src, dst]) => {
+          addGlobalMappingRowModal(src, dst);
+        });
+      }
+
+      function addGlobalMappingRowModal(src = "", dst = "") {
+        const container = document.getElementById('globalMappingListModal');
+        const row = document.createElement('div');
+        row.className = 'global-mapping-row';
+        row.style.cssText = "display:flex;gap:8px;align-items:center;";
+
+        // 源模型固定为 Claude Code 的三个核心模型
+        const CLAUDE_MODELS = [
+          'claude-3-7-sonnet-20250219',
+          'claude-3-5-sonnet-20241022',
+          'claude-3-5-sonnet-latest',
+          'claude-3-5-haiku-20241022',
+          'claude-3-opus-20240229'
+        ];
+
+        const srcOptions = CLAUDE_MODELS
+          .map(m => `<option value="${m}" ${m === src ? 'selected' : ''}>${m.split('-')[2] || m}</option>`)
+          .join('');
+
+        // 目标模型从用户定义的模型库中选择
+        const dstOptions = (allSettings.modelOptions || [])
+          .map(opt => `<option value="${opt}" ${opt === dst ? 'selected' : ''}>${opt}</option>`)
+          .join('');
+
+        row.innerHTML = `
+          <select class="src-model" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);color:var(--text-primary);font-size:13px;" onchange="saveGlobalMappingModal()">
+            <option value="">原始模型...</option>
+            ${srcOptions}
+          </select>
+          <span style="color:var(--text-muted);">→</span>
+          <select class="dst-model" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);color:var(--text-primary);font-size:13px;" onchange="saveGlobalMappingModal()">
+            <option value="">目标模型...</option>
+            ${dstOptions}
+          </select>
+          <button class="btn btn-danger btn-small" onclick="this.parentElement.remove();saveGlobalMappingModal()">
+            <span class="material-symbols-outlined" style="font-size:14px">delete</span>
+          </button>
+        `;
+        container.appendChild(row);
+      }
+
+      async function saveGlobalMappingModal() {
+        const container = document.getElementById('globalMappingListModal');
+        const mapping = {};
+        container.querySelectorAll('.global-mapping-row').forEach(row => {
+          const src = row.querySelector('.src-model').value;
+          const dst = row.querySelector('.dst-model').value;
+          if (src && dst) mapping[src] = dst;
+        });
+        await saveSettings({ defaultModelMapping: mapping });
       }
 
       function updateUptime() {

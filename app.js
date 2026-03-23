@@ -95,10 +95,10 @@ async function startServer() {
     // 副标题与信息栏
     console.log()
     console.log(chalk.bold.white('  Claude Proxy Switcher') + chalk.gray('  —  多账号自动故障转移网关'))
-    console.log(chalk.gray('  ' + '─'.repeat(46)))
+    console.log(chalk.gray('  ' + '─'.repeat(48)))
     console.log(chalk.gray('  Port  ') + chalk.white(String(config.port)))
     console.log(chalk.gray('  URL   ') + chalk.cyan(`http://localhost:${config.port}`))
-    console.log(chalk.gray('  ' + '─'.repeat(46)))
+    console.log(chalk.gray('  ' + '─'.repeat(48)))
     console.log()
   })
 }

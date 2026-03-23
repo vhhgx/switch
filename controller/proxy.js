@@ -5,6 +5,17 @@ import { scheduleBalanceCheck } from '../services/balance.js'
 import { c, ts, providerTag, statusBadge, ms } from '../utils/logger.js'
 
 const handleProxyRequest = async (ctx) => {
+  // 🔧 特殊处理：count_tokens 接口直接返回默认响应（不请求中转站）
+  if (ctx.path.includes('count_tokens')) {
+    ctx.status = 200
+    ctx.set('Content-Type', 'application/json')
+    ctx.body = {
+      input_tokens: 0,
+      output_tokens: 0
+    }
+    return
+  }
+
   const providers = providerService.getProviders().filter((p) => p.enabled)
 
   if (providers.length === 0) {

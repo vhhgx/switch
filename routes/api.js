@@ -20,6 +20,7 @@ router.delete('/api/logs', logController.clear)
 // User routes
 router.post('/api/user/self', userController.getSelf)
 router.post('/api/user/checkin', userController.checkIn)
+router.post('/api/user/checkin/all', userController.checkAll)
 
 // Settings routes
 router.get('/api/settings', settingsController.getAll)

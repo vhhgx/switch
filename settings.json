@@ -37,5 +37,9 @@
   "autoRefresh": true,
   "refreshInterval": 3,
   "maxLogs": 100,
-  "autoDisable": false
+  "autoDisable": false,
+  "defaultModelMapping": {},
+  "modelOptions": [
+    "claude-sonnet-4-6"
+  ]
 }

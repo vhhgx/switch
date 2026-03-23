@@ -26,6 +26,18 @@ const DEFAULT_SETTINGS = {
     notifyOnProviderDown: true,
     soundEnabled: false
   },
+  modelOptions: [
+    'claude-3-7-sonnet-20250219',
+    'claude-3-5-sonnet-20241022',
+    'claude-3-5-sonnet-latest',
+    'claude-3-5-haiku-20241022',
+    'claude-3-opus-20240229'
+  ],
+  defaultModelMapping: {
+    'claude-3-7-sonnet-20250219': '',
+    'claude-3-5-sonnet-20241022': '',
+    'claude-3-5-sonnet-latest': ''
+  },
   quotaModes: [
     {
       id: 0,
@@ -91,7 +103,10 @@ export async function updateSettings(updates) {
     // 深度合并嵌套对象
     general: { ...currentSettings.general, ...updates.general },
     provider: { ...currentSettings.provider, ...updates.provider },
-    notification: { ...currentSettings.notification, ...updates.notification }
+    notification: { ...currentSettings.notification, ...updates.notification },
+    modelOptions: updates.modelOptions || currentSettings.modelOptions,
+    defaultModelMapping: updates.defaultModelMapping || currentSettings.defaultModelMapping,
+    envVariables: updates.envVariables || currentSettings.envVariables
   }
   await saveSettings(newSettings)
   return newSettings
