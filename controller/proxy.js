@@ -119,9 +119,19 @@ const handleProxyRequest = async (ctx) => {
       if (response.data && typeof response.data.pipe === 'function') {
         const originalStream = response.data
 
+        // 监听客户端连接断开 (Koa 底层相关)
+        ctx.res.on('close', () => {
+          if (!originalStream.destroyed) {
+            // console.log(`${ts()}  ${c.gray}ℹ${c.r}  客户端连接关闭，正在销毁 Provider Stream${c.r}`)
+            originalStream.destroy()
+          }
+        })
+
         // 监听 stream 错误
         originalStream.on('error', (err) => {
-          console.log(`${ts()}  ${c.red}✗${c.r}  ${providerTag(provider.name, c.red)}  ${c.red}Stream 中断${c.r}  ${c.gray}${err.code || err.message}  数据已部分传输，无法切换${c.r}`)
+          const isReset = err.code === 'ECONNRESET'
+          const level = isReset ? c.yellow : c.red
+          console.log(`${ts()}  ${level}✗${c.r}  ${providerTag(provider.name, level)}  ${level}Stream 中断${c.r}  ${c.gray}${err.code || err.message} | 可能是网络波动或中转站风控${c.r}`)
 
           // 记录失败日志
           logEntry.status = 502
@@ -134,7 +144,7 @@ const handleProxyRequest = async (ctx) => {
           logService.addLog(logEntry)
         })
 
-        originalStream.on('end', () => {}) // 传输完成由下方成功行统一打印
+        originalStream.on('end', () => {})
       }
 
       ctx.body = response.data

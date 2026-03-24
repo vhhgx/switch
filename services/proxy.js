@@ -1,7 +1,13 @@
 import axios from 'axios'
+import http from 'http'
+import https from 'https'
 import config from '../config/index.js'
 import { getSettings } from './settings.js'
 import { c, ts, providerTag } from '../utils/logger.js'
+
+// 创建持久化 Agent 以减少 ECONNRESET
+const httpAgent = new http.Agent({ keepAlive: true, keepAliveMsecs: 1000 })
+const httpsAgent = new https.Agent({ keepAlive: true, keepAliveMsecs: 1000 })
 
 function buildTargetUrl(baseUrl, requestPath) {
   let cleanBase = baseUrl.trim().replace(/\/+$/, '')
@@ -62,14 +68,16 @@ async function forwardRequest(provider, ctx) {
     responseType: 'stream',
     timeout: config.requestTimeout,
     validateStatus: (status) => status < 500,
-    proxy: false
+    proxy: false,
+    httpAgent,
+    httpsAgent
   })
 
   // 为 stream 添加错误处理
   if (response.data && typeof response.data.on === 'function') {
     response.data.on('error', (err) => {
-      const hint = err.code === 'ECONNRESET' ? '连接被远程服务器重置' : err.message
-      console.error(`${ts()}  ${c.red}✗${c.r}  ${providerTag(provider.name, c.red)}  ${c.red}Stream 中断${c.r}  ${c.gray}${hint}${c.r}`)
+      const hint = err.code === 'ECONNRESET' ? '连接被远程服务器重置 (ECONNRESET)' : err.message
+      console.error(`${ts()}  ${c.red}✗${c.r}  ${providerTag(provider.name, c.red)}  ${c.red}Provider Stream 异常${c.r}  ${c.gray}${hint}${c.r}`)
     })
   }
 

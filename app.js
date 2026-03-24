@@ -57,6 +57,12 @@ routes(app)
 
 // 错误监听
 app.on('error', (err, ctx) => {
+  // 屏蔽掉在 stream 传输过程中由客户端主动断开（如 Claude Code 停止生成）引发的预期内错误
+  const ignoreCodes = ['ECONNRESET', 'ERR_STREAM_PREMATURE_CLOSE']
+  if (ignoreCodes.includes(err.code)) {
+    // 静默处理，不再打印干扰性的堆栈日志
+    return
+  }
   console.error('server error', err)
 })
 
