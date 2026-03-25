@@ -2,7 +2,7 @@
 
 🚀 **Claude Code CLI 多账号/多中转站自动故障转移网关**
 
-一个基于 Koa2 的本地中间件工具，作为 Claude Code CLI 和 Anthropic API 之间的智能代理，实现多账号自动切换、故障转移和统一管理。
+一个基于 Koa3 的本地中间件工具，作为 Claude Code CLI 和 Anthropic API 之间的智能代理，实现多账号自动切换、故障转移和统一管理。
 
 ---
 
@@ -53,6 +53,25 @@
 - 兼容带或不带 `/v1` 的 BaseURL
 - 防止 URL 拼接错误
 
+### 8. **count_tokens 请求拦截**
+
+- 自动拦截 `/v1/messages/count_tokens` 请求
+- 直接返回默认响应，不转发到中转站
+- 避免因中转站不支持该接口导致的 404 错误
+- 减少不必要的网络请求，提升响应速度
+
+### 9. **模型映射功能**
+
+- 支持为每个中转站配置模型映射规则
+- 自动将请求的模型名称转换为中转站支持的模型
+- 灵活适配不同中转站的模型命名差异
+
+### 10. **余额自动检查**
+
+- 请求成功后自动触发余额检查（异步，不阻塞响应）
+- 冷却期机制，避免频繁查询
+- 实时监控账户余额变化
+
 ---
 
 ## 📦 安装
@@ -69,12 +88,14 @@ npm start
 ```
 
 **首次启动说明**：
+
 - ✅ 系统会在启动时自动创建 `providers.json` 配置文件（如果不存在）
 - ✅ 系统会在启动时自动创建 `settings.json` 配置文件（如果不存在）
 - ✅ 无需手动创建配置文件，直接启动即可
 - ✅ 启动时会显示配置文件初始化状态
 
 启动输出示例：
+
 ```
 正在初始化配置文件...
 ✓ providers.json 已就绪
@@ -90,11 +111,13 @@ npm start
 如果需要手动创建配置文件，可以参考以下格式：
 
 **providers.json**（中转站配置）：
+
 ```json
 []
 ```
 
 **settings.json**（应用设置）：
+
 ```json
 {
   "general": {
@@ -230,29 +253,34 @@ Claude Code CLI
 
 ```
 claude-proxy-switcher/
-├── app.js                  # 应用入口，Koa 应用初始化
-├── server.js               # 服务器启动文件（已废弃，使用 app.js）
+├── app.js                  # 应用入口，Koa 应用初始化（当前使用）
+├── server.js               # 早期版本（已废弃，可删除）
 ├── package.json            # 依赖配置
 ├── providers.json          # 中转站配置（自动生成）
 ├── settings.json           # 应用设置（自动生成）
 ├── config/
-│   └── index.js            # 配置文件（端口等）
+│   └── index.js            # 配置文件（端口、超时等）
 ├── controller/             # 控制器层（MVC）
 │   ├── log.js              # 日志控制器
 │   ├── provider.js         # 中转站控制器
-│   ├── proxy.js            # 代理控制器
+│   ├── proxy.js            # 代理控制器（包含 count_tokens 拦截）
 │   ├── settings.js         # 设置控制器（环境变量、配额模式）
 │   └── user.js             # 用户控制器（余额、签到）
 ├── services/               # 服务层（MVC）
-│   ├── log.js              # 日志服务
+│   ├── balance.js          # 余额自动检查服务
+│   ├── log.js              # 日志服务（持久化到文件）
 │   ├── provider.js         # 中转站服务
-│   ├── proxy.js            # 代理服务
+│   ├── proxy.js            # 代理服务（URL 处理、模型映射）
 │   ├── settings.js         # 设置服务
 │   └── user.js             # 用户服务
 ├── routes/                 # 路由层（MVC）
 │   ├── index.js            # 路由入口
 │   ├── api.js              # API 路由
 │   └── proxy.js            # 代理路由
+├── utils/                  # 工具函数
+│   └── logger.js           # 日志格式化工具
+├── logs/                   # 日志目录
+│   └── requests.jsonl      # 请求日志文件（自动生成）
 ├── public/                 # 静态资源
 │   ├── index.html          # 管理界面
 │   ├── css/                # 样式文件
@@ -265,7 +293,50 @@ claude-proxy-switcher/
 
 ## 🛡️ 关键技术细节
 
-### 1. 流式传输处理
+### 1. count_tokens 请求拦截
+
+```javascript
+// 在 controller/proxy.js 中拦截 count_tokens 请求
+if (ctx.path.includes("count_tokens")) {
+  console.log("拦截 count_tokens 请求，直接返回默认响应（不请求中转站）");
+  ctx.status = 200;
+  ctx.set("Content-Type", "application/json");
+  ctx.body = {
+    input_tokens: 0,
+    output_tokens: 0,
+  };
+  return;
+}
+```
+
+**为什么要拦截？**
+
+- Claude Code CLI 会自动发送 count_tokens 请求来估算 token 使用量
+- 大部分第三方中转站不支持此接口，会返回 404 错误
+- 拦截后直接返回默认值，避免无意义的网络请求和错误日志
+
+### 2. 模型映射功能
+
+```javascript
+// 在 services/proxy.js 中应用模型映射
+if (
+  requestBody?.model &&
+  provider.modelMapping &&
+  provider.modelMapping[requestBody.model]
+) {
+  const originalModel = requestBody.model;
+  const actualModel = provider.modelMapping[requestBody.model];
+  requestBody = { ...requestBody, model: actualModel };
+  console.log(`模型映射: ${originalModel} → ${actualModel}`);
+}
+```
+
+**使用场景**：
+
+- 某些中转站使用不同的模型命名（如 `claude-3-opus` vs `claude-opus-3`）
+- 在 providers.json 中配置 modelMapping 字段即可自动转换
+
+### 3. 流式传输处理
 
 ```javascript
 // SSE 响应头
@@ -277,7 +348,7 @@ ctx.set("Connection", "keep-alive");
 ctx.body = response.data; // Axios stream
 ```
 
-### 2. Anthropic 响应头透传
+### 4. Anthropic 响应头透传
 
 ```javascript
 // 透传 anthropic-* 开头的所有响应头（用于额度统计）
@@ -287,6 +358,19 @@ Object.keys(response.headers).forEach((key) => {
   }
 });
 ```
+
+### 5. 余额自动检查
+
+```javascript
+// 在 controller/proxy.js 中，请求成功后触发
+scheduleBalanceCheck(provider);
+```
+
+**特点**：
+
+- 异步执行，不阻塞响应
+- 冷却期机制（默认 5 分钟），避免频繁查询
+- 自动更新中转站的余额信息
 
 ---
 
@@ -307,11 +391,27 @@ Object.keys(response.headers).forEach((key) => {
 
 **可能原因**:
 
-- 网络超时（默认 30 秒）
+- 网络超时（默认 180 秒）
 - 中转站不稳定
 - 代理干扰
 
 **解决**: 启用多个中转站，利用自动故障转移
+
+### 问题 3: count_tokens 请求失败
+
+**现象**: 控制台显示 count_tokens 相关错误
+
+**解决**:
+
+- 最新版本已自动拦截 count_tokens 请求
+- 如果仍有问题，请确认使用的是 app.js 而非 server.js
+- 检查 [controller/proxy.js](controller/proxy.js) 中是否包含拦截逻辑
+
+### 问题 4: 模型名称不匹配
+
+**现象**: 中转站返回 "model not found" 错误
+
+**解决**: 在 providers.json 中配置 modelMapping 字段，将请求的模型名称映射到中转站支持的模型
 
 ---
 
@@ -329,10 +429,34 @@ export default {
 
 ### 自定义超时时间
 
-编辑代理服务文件，修改 axios 请求的 timeout 参数：
+编辑 [config/index.js](config/index.js)，修改超时参数：
 
 ```javascript
-timeout: 30000,  // 改为 60000（60秒）
+export default {
+  port: 5678,
+  requestTimeout: 180000, // 请求超时（毫秒），默认 180 秒
+  streamTimeout: 180000, // 流式超时（毫秒），默认 180 秒
+};
+```
+
+### 配置模型映射
+
+在 providers.json 中为中转站添加 modelMapping 字段：
+
+```json
+[
+  {
+    "id": "uuid",
+    "name": "中转站名称",
+    "baseUrl": "https://api.example.com",
+    "apiKey": "sk-xxxxx",
+    "enabled": true,
+    "modelMapping": {
+      "claude-3-opus-20240229": "claude-opus-3",
+      "claude-3-sonnet-20240229": "claude-sonnet-3"
+    }
+  }
+]
 ```
 
 ### 配置文件说明
@@ -384,6 +508,15 @@ timeout: 30000,  // 改为 60000（60秒）
 
 ## 📝 更新日志
 
+### v1.0.1 (2026-03-06)
+
+- ✨ 添加 count_tokens 请求拦截功能
+- ✨ 添加模型映射功能（modelMapping）
+- ✨ 添加余额自动检查功能
+- 🐛 修复日志持久化问题
+- 📝 更新 README 文档，完善功能说明
+- 🗑️ 标记 server.js 为废弃文件
+
 ### v1.0.0 (2026-02-08)
 
 - ✨ 添加 API 配置管理与多目标环境变量写入功能
@@ -400,16 +533,34 @@ MIT License
 
 ---
 
-## 🙏 致谢
-
-- [Koa3](https://koajs.com/) - 优雅的 Node.js Web 框架
-- [Axios](https://axios-http.com/) - 强大的 HTTP 客户端
-- [Anthropic API](https://docs.anthropic.com/) - Claude AI 服务
-
----
-
 ## 📮 反馈与支持
 
 如有问题或建议，请提交 Issue 或 Pull Request。
 
 **享受智能的 Claude Code 体验！** 🎉
+
+
+
+* branch            main       -> FETCH_HEAD
+error: Your local changes to the following files would be overwritten by merge:
+	.gitignore
+	app.js
+	controller/proxy.js
+	services/proxy.js
+Please commit your changes or stash them before you merge.
+Aborting
+
+
+app.js
+```js
+// 中间件配置（按顺序）
+app.use(bodyParser({
+  jsonLimit: '10mb',  // 增加 JSON 请求体大小限制
+  textLimit: '10mb',  // 增加文本请求体大小限制
+  enableTypes: ['json', 'text'],
+  onerror: (err, ctx) => {
+    console.error(`${c.red}✗ bodyParser 错误:${c.r}`, err.message)
+    ctx.throw(400, `请求体解析失败: ${err.message}`)
+  }
+}))
+```
