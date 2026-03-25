@@ -766,6 +766,19 @@
       </div>
     </div>
 
+    <!-- DataLists for Model Inputs -->
+    <datalist id="claudeModelsList">
+      <option value="claude-sonnet-4-6"></option>
+      <option value="claude-haiku-4-5-20251001"></option>
+      <option value="claude-opus-4-6"></option>
+      <option value="claude-3-7-sonnet-20250219"></option>
+      <option value="claude-3-5-sonnet-20241022"></option>
+      <option value="claude-3-5-sonnet-latest"></option>
+      <option value="claude-3-5-haiku-20241022"></option>
+      <option value="claude-3-opus-20240229"></option>
+    </datalist>
+    <datalist id="userModelOptionsList"></datalist>
+
     <!-- Quota Modal -->
     <div class="modal-overlay" id="quotaModal">
       <div class="modal">
@@ -1753,18 +1766,12 @@
         const row = document.createElement("div");
         row.style.cssText = "display:flex;gap:6px;align-items:center;";
 
-        // 生成下拉选项
-        const options = (allSettings.modelOptions || [])
-          .map(opt => `<option value="${opt}" ${opt === src ? 'selected' : ''}>${opt}</option>`)
-          .join('');
-
         row.innerHTML = `
-          <select style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);color:var(--text-primary);font-size:13px;">
-            <option value="">请选择模型...</option>
-            ${options}
-          </select>
+          <input type="text" placeholder="原始模型名" list="claudeModelsList"
+            value="${src.replace(/"/g, "&quot;")}"
+            style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);color:var(--text-primary);font-size:13px;" />
           <span style="color:var(--text-muted);flex-shrink:0;">→</span>
-          <input type="text" placeholder="目标模型名（如 gpt-4o）"
+          <input type="text" placeholder="目标模型名（如 gpt-4o）" list="userModelOptionsList"
             value="${dst.replace(/"/g, "&quot;")}"
             style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);color:var(--text-primary);font-size:13px;" />
           <button type="button" onclick="this.parentElement.remove()"
@@ -1778,10 +1785,9 @@
         const list = document.getElementById("editModelMappingList");
         const mapping = {};
         list.querySelectorAll("div").forEach((row) => {
-          const select = row.querySelector("select");
-          const input = row.querySelector("input");
-          const src = select?.value;
-          const dst = input?.value.trim();
+          const inputs = row.querySelectorAll("input");
+          const src = inputs[0]?.value.trim();
+          const dst = inputs[1]?.value.trim();
           if (src && dst) mapping[src] = dst;
         });
         return mapping;
@@ -3026,6 +3032,12 @@
             <span class="material-symbols-outlined" onclick="deleteModelOptionModal('${opt}')" style="font-size:14px;cursor:pointer;opacity:0.6;">close</span>
           </div>
         `).join('');
+
+        // 更新 datalist
+        const dataList = document.getElementById('userModelOptionsList');
+        if (dataList) {
+          dataList.innerHTML = options.map(opt => `<option value="${opt}"></option>`).join('');
+        }
       }
 
       async function addModelOption() {
@@ -3063,34 +3075,12 @@
         row.className = 'global-mapping-row';
         row.style.cssText = "display:flex;gap:8px;align-items:center;";
 
-        // 源模型固定为 Claude Code 的三个核心模型
-        const CLAUDE_MODELS = [
-          'claude-3-7-sonnet-20250219',
-          'claude-3-5-sonnet-20241022',
-          'claude-3-5-sonnet-latest',
-          'claude-3-5-haiku-20241022',
-          'claude-3-opus-20240229'
-        ];
-
-        const srcOptions = CLAUDE_MODELS
-          .map(m => `<option value="${m}" ${m === src ? 'selected' : ''}>${m.split('-')[2] || m}</option>`)
-          .join('');
-
-        // 目标模型从用户定义的模型库中选择
-        const dstOptions = (allSettings.modelOptions || [])
-          .map(opt => `<option value="${opt}" ${opt === dst ? 'selected' : ''}>${opt}</option>`)
-          .join('');
-
         row.innerHTML = `
-          <select class="src-model" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);color:var(--text-primary);font-size:13px;" onchange="saveGlobalMappingModal()">
-            <option value="">原始模型...</option>
-            ${srcOptions}
-          </select>
+          <input type="text" class="src-model" value="${src}" placeholder="原始模型名" list="claudeModelsList"
+            style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);color:var(--text-primary);font-size:13px;" onchange="saveGlobalMappingModal()" />
           <span style="color:var(--text-muted);">→</span>
-          <select class="dst-model" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);color:var(--text-primary);font-size:13px;" onchange="saveGlobalMappingModal()">
-            <option value="">目标模型...</option>
-            ${dstOptions}
-          </select>
+          <input type="text" class="dst-model" value="${dst}" placeholder="目标模型名" list="userModelOptionsList"
+            style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);color:var(--text-primary);font-size:13px;" onchange="saveGlobalMappingModal()" />
           <button class="btn btn-danger btn-small" onclick="this.parentElement.remove();saveGlobalMappingModal()">
             <span class="material-symbols-outlined" style="font-size:14px">delete</span>
           </button>
@@ -3102,8 +3092,8 @@
         const container = document.getElementById('globalMappingListModal');
         const mapping = {};
         container.querySelectorAll('.global-mapping-row').forEach(row => {
-          const src = row.querySelector('.src-model').value;
-          const dst = row.querySelector('.dst-model').value;
+          const src = row.querySelector('.src-model').value.trim();
+          const dst = row.querySelector('.dst-model').value.trim();
           if (src && dst) mapping[src] = dst;
         });
         await saveSettings({ defaultModelMapping: mapping });
