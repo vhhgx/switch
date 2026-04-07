@@ -27,4 +27,20 @@ const remove = async (ctx) => {
   ctx.body = { success: true }
 }
 
-export { getAll, create, toggle, update, remove }
+const enableAll = async (ctx) => {
+  providerService.enableAllProviders()
+  ctx.body = { success: true }
+}
+
+const disableAll = async (ctx) => {
+  providerService.disableAllProviders()
+  ctx.body = { success: true }
+}
+
+const reorder = async (ctx) => {
+  const ids = ctx.request.body?.ids || []
+  providerService.reorderProviders(ids)
+  ctx.body = { success: true }
+}
+
+export { getAll, create, toggle, update, remove, enableAll, disableAll, reorder }

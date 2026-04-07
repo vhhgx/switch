@@ -85,6 +85,24 @@
             </h2>
             <div style="display: flex; gap: 8px">
               <button
+                class="btn btn-success btn-small"
+                onclick="enableAllProviders()"
+              >
+                <span class="material-symbols-outlined" style="font-size: 14px">
+                  done_all
+                </span>
+                启用全部
+              </button>
+              <button
+                class="btn btn-danger btn-small"
+                onclick="disableAllProviders()"
+              >
+                <span class="material-symbols-outlined" style="font-size: 14px">
+                  remove_done
+                </span>
+                禁用全部
+              </button>
+              <button
                 class="btn btn-primary btn-small"
                 onclick="openAddModal()"
               >
@@ -1378,6 +1396,7 @@
       // 余额缓存：{ [providerId]: { balance, used, currencySymbol } }
       // loadProviders() 重绘后从此处还原，避免余额消失
       let _balanceCache = {};
+      let draggedProviderId = null;
 
       // Load providers list
       async function loadProviders() {
@@ -1435,9 +1454,10 @@
           container.innerHTML = providers
             .map(
               (p) => `
-          <div class="provider-card ${p.enabled ? "enabled" : "disabled"}">
+          <div class="provider-card ${p.enabled ? "enabled" : "disabled"}" draggable="true" data-id="${p.id}">
             <div class="provider-info">
               <div class="name">
+                <span class="material-symbols-outlined drag-handle" style="font-size: 18px">drag_indicator</span>
                 <span class="status-badge ${p.enabled ? "online" : "offline"}">
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
                     <circle cx="4" cy="4" r="4" />
@@ -1557,6 +1577,8 @@
             )
             .join("");
 
+          bindProviderDragEvents(container);
+
           // 重绘后，从缓存还原已获取过的余额数据（避免因 loadProviders 重新渲染导致余额消失）
           Object.entries(_balanceCache).forEach(([id, cached]) => {
             const pid = parseInt(id);
@@ -1582,6 +1604,107 @@
         } catch (err) {
           console.error("加载中转站失败:", err);
         }
+      }
+
+      async function saveProviderOrder() {
+        const ids = Array.from(document.querySelectorAll("#providerList .provider-card"))
+          .map((card) => Number(card.dataset.id));
+
+        const response = await fetch("/api/providers/reorder", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids }),
+        });
+
+        if (!response.ok) {
+          throw new Error("保存排序请求失败");
+        }
+      }
+
+      function getDragAfterElement(container, y, draggedCard) {
+        const cards = [...container.querySelectorAll(".provider-card:not(.dragging)")]
+          .filter((card) => card !== draggedCard);
+
+        return cards.reduce(
+          (closest, card) => {
+            const box = card.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+
+            if (offset < 0 && offset > closest.offset) {
+              return { offset, element: card };
+            }
+
+            return closest;
+          },
+          { offset: Number.NEGATIVE_INFINITY, element: null },
+        ).element;
+      }
+
+      function bindProviderDragEvents(container) {
+        let currentDropTarget = null;
+
+        const cards = container.querySelectorAll(".provider-card");
+
+        cards.forEach((card) => {
+          card.addEventListener("dragstart", (e) => {
+            draggedProviderId = card.dataset.id;
+            card.classList.add("dragging");
+            if (e.dataTransfer) {
+              e.dataTransfer.effectAllowed = "move";
+              e.dataTransfer.setData("text/plain", card.dataset.id);
+            }
+          });
+
+          card.addEventListener("dragend", async () => {
+            card.classList.remove("dragging");
+            container.querySelectorAll(".provider-card").forEach((item) => {
+              item.classList.remove("drag-over");
+            });
+            currentDropTarget = null;
+
+            if (!draggedProviderId) return;
+            draggedProviderId = null;
+            try {
+              await saveProviderOrder();
+              await loadProviders();
+            } catch (err) {
+              console.error("保存排序失败:", err);
+              alert("保存排序失败");
+            }
+          });
+        });
+
+        container.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          const draggingCard = container.querySelector(".provider-card.dragging");
+          if (!draggingCard) return;
+
+          const afterElement = getDragAfterElement(container, e.clientY, draggingCard);
+          const nextTarget = afterElement || null;
+
+          if (currentDropTarget && currentDropTarget !== nextTarget) {
+            currentDropTarget.classList.remove("drag-over");
+          }
+
+          if (nextTarget) {
+            nextTarget.classList.add("drag-over");
+          }
+          currentDropTarget = nextTarget;
+
+          if (afterElement == null) {
+            container.appendChild(draggingCard);
+          } else {
+            container.insertBefore(draggingCard, afterElement);
+          }
+        });
+
+        container.addEventListener("drop", (e) => {
+          e.preventDefault();
+          if (currentDropTarget) {
+            currentDropTarget.classList.remove("drag-over");
+            currentDropTarget = null;
+          }
+        });
       }
 
       // Add provider
@@ -1690,6 +1813,32 @@
         await fetch(`/api/providers/${id}/toggle`, { method: "PATCH" });
         loadProviders();
         loadStats();
+      }
+
+      // Enable all providers
+      async function enableAllProviders() {
+        if (!confirm("确定要启用所有中转站吗？")) return;
+        try {
+          await fetch(`/api/providers/enable-all`, { method: "POST" });
+          loadProviders();
+          loadStats();
+        } catch(e) {
+          console.error(e);
+          alert("启用失败");
+        }
+      }
+
+      // Disable all providers
+      async function disableAllProviders() {
+        if (!confirm("确定要禁用所有中转站吗？")) return;
+        try {
+          await fetch(`/api/providers/disable-all`, { method: "POST" });
+          loadProviders();
+          loadStats();
+        } catch(e) {
+          console.error(e);
+          alert("禁用失败");
+        }
       }
 
       // Delete provider

@@ -316,6 +316,16 @@ body::before {
   gap: 20px;
 }
 
+.provider-card.dragging {
+  opacity: 0.45;
+  transform: scale(0.98);
+}
+
+.provider-card.drag-over {
+  border-color: rgba(59, 130, 246, 0.8);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
 .provider-card:hover {
   border-color: rgba(59, 130, 246, 0.3);
   transform: translateX(4px);
@@ -343,6 +353,16 @@ body::before {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.drag-handle {
+  cursor: grab;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.provider-card.dragging .drag-handle {
+  cursor: grabbing;
 }
 
 .provider-info .url {

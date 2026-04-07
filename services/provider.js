@@ -56,11 +56,42 @@ const deleteProvider = (id) => {
   return providers
 }
 
+const enableAllProviders = () => {
+  const providers = getProviders()
+  providers.forEach(p => p.enabled = true)
+  saveProviders(providers)
+  return providers
+}
+
+const disableAllProviders = () => {
+  const providers = getProviders()
+  providers.forEach(p => p.enabled = false)
+  saveProviders(providers)
+  return providers
+}
+
+const reorderProviders = (ids) => {
+  const providers = getProviders()
+  const providerMap = new Map(providers.map((p) => [String(p.id), p]))
+  const reordered = ids
+    .map((id) => providerMap.get(String(id)))
+    .filter(Boolean)
+
+  const remaining = providers.filter((p) => !ids.map(String).includes(String(p.id)))
+  const nextProviders = [...reordered, ...remaining]
+
+  saveProviders(nextProviders)
+  return nextProviders
+}
+
 export {
   getProviders,
   saveProviders,
   addProvider,
   toggleProvider,
   updateProvider,
-  deleteProvider
+  deleteProvider,
+  enableAllProviders,
+  disableAllProviders,
+  reorderProviders
 }
